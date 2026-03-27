@@ -1,0 +1,22 @@
+# Snacqo Caddy config (appended to /opt/carboncraft/config/Caddyfile)
+# These blocks are added inside the :80 {} block as host matchers.
+
+@snacqo_frontend host snacqo.com www.snacqo.com
+handle @snacqo_frontend {
+    encode gzip
+
+    reverse_proxy snacqo_frontend:80 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+@snacqo_api host api.snacqo.com
+handle @snacqo_api {
+    reverse_proxy snacqo_backend:3001 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

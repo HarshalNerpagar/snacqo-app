@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>snacQO Logo Preview</title>
+    <style>
+        /* Importing a bubbly, rounded font */
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600&display=swap');
+
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #e6eedc; /* Light Sage Background */
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .logo-container {
+            text-align: center;
+            color: #ee8b6a; /* Peach/Coral Color */
+            line-height: 0.8;
+            user-select: none;
+        }
+
+        .row-top {
+            font-size: 120px;
+            letter-spacing: -5px;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .row-bottom {
+            font-size: 180px;
+            margin-top: -10px;
+            letter-spacing: -8px;
+        }
+
+        /* Styling the 'c' to look like a cashew/macaroni nut */
+        .cashew {
+            display: inline-block;
+            transform: rotate(15deg) translateY(-5px);
+            font-size: 130px;
+            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.05));
+        }
+
+        .q-char {
+            display: inline-block;
+            transform: scale(1.1);
+        }
+
+        .o-char {
+            display: inline-block;
+        }
+
+        /* Subtle grain texture effect */
+        .texture-overlay {
+            position: relative;
+        }
+        
+        .texture-overlay::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.1;
+            pointer-events: none;
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+        }
+    </style>
+</head>
+<body>
+
+    <div class="logo-container texture-overlay">
+        <div class="row-top">
+            <span>sna</span><span class="cashew">c</span>
+        </div>
+        <div class="row-bottom">
+            <span class="q-char">Q</span><span class="o-char">O</span>
+        </div>
+    </div>
+
+</body>
+</html>

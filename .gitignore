@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment variables
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Webhook
+webhook/hooks.json
+
+# Claude
+.claude/
+
+# Misc
+image.png

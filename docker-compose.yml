@@ -1,0 +1,45 @@
+services:
+  # ===========================================
+  # Express Backend
+  # ===========================================
+  backend:
+    build:
+      context: ./backend
+    container_name: snacqo_backend
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - snacqo_caddy_bridge
+
+  # ===========================================
+  # Admin Panel (Nginx)
+  # ===========================================
+  admin:
+    build:
+      context: ./admin
+      args:
+        VITE_API_URL: https://api.snacqo.com
+    container_name: snacqo_admin
+    restart: unless-stopped
+    networks:
+      - snacqo_caddy_bridge
+
+  # ===========================================
+  # React Frontend (Nginx)
+  # ===========================================
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: https://api.snacqo.com
+    container_name: snacqo_frontend
+    restart: unless-stopped
+    networks:
+      - snacqo_caddy_bridge
+
+# ===========================================
+# Networks
+# ===========================================
+networks:
+  snacqo_caddy_bridge:
+    external: true
