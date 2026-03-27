@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { homepageImages } from '@/config/homepage-images';
 
 type FlavorCard = {
@@ -106,7 +107,7 @@ const cards: FlavorCard[] = [
   },
 ];
 
-function FlavorCardContent({ card }: { card: FlavorCard }) {
+function FlavorCardContent({ card, onCtaClick }: { card: FlavorCard; onCtaClick: () => void }) {
   return (
     <>
       <div
@@ -150,6 +151,7 @@ function FlavorCardContent({ card }: { card: FlavorCard }) {
         <div className="mt-auto w-full">
           <motion.button
             type="button"
+            onClick={onCtaClick}
             className={`w-full py-3 ${card.btnClass} border-2 border-text-chocolate font-black uppercase shadow-[2px_2px_0px_0px_#2D1B0E] hover:bg-text-chocolate hover:text-white transition-colors`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -169,6 +171,7 @@ function FlavorCardContent({ card }: { card: FlavorCard }) {
 export function Flavors() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -237,7 +240,7 @@ export function Flavors() {
                 viewport={{ once: true }}
               >
                 <div className={`relative ${card.rotateClass}`}>
-                  <FlavorCardContent card={card} />
+                  <FlavorCardContent card={card} onCtaClick={() => navigate('/shop')} />
                 </div>
               </motion.div>
             ))}
@@ -269,7 +272,7 @@ export function Flavors() {
               whileHover={{ rotate: 0, zIndex: 20 }}
               transition={{ duration: 0.3 }}
             >
-              <FlavorCardContent card={card} />
+              <FlavorCardContent card={card} onCtaClick={() => navigate('/shop')} />
             </motion.div>
           ))}
         </div>
