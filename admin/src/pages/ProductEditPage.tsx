@@ -16,6 +16,25 @@ import {
 } from '@/api/products';
 import { getCategories } from '@/api/categories';
 import type { Category } from '@/api/categories';
+import { motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  Package,
+  Plus,
+  Pencil,
+  Trash2,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  X,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 
 // ----- Basic product form -----
 function ProductBasicForm({
@@ -106,63 +125,62 @@ function ProductBasicForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label className="block">
-          <span className="text-xs font-medium text-slate-600">Name</span>
-          <input
-            type="text"
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Name</label>
+          <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
-        </label>
-        <label className="block">
-          <span className="text-xs font-medium text-slate-600">Slug</span>
-          <input
-            type="text"
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Slug</label>
+          <Input
             value={slug}
             onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono"
+            className="font-mono"
           />
-        </label>
+        </div>
       </div>
-      <label className="block">
-        <span className="text-xs font-medium text-slate-600">Category</span>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Category</label>
         <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
-          className="mt-1 block w-full max-w-xs rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-      </label>
-      <label className="block">
-        <span className="text-xs font-medium text-slate-600">Description</span>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Description</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
-      </label>
-      <label className="block">
-        <span className="text-xs font-medium text-slate-600">Short description</span>
-        <input
-          type="text"
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Short description</label>
+        <Input
           value={shortDescription}
           onChange={(e) => setShortDescription(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
         />
-      </label>
-      <label className="block">
-        <span className="text-xs font-medium text-slate-600">Card label</span>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Card label</label>
         <select
           value={cardLabel}
           onChange={(e) => setCardLabel(e.target.value)}
-          className="mt-1 block w-full max-w-xs rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           {CARD_LABEL_OPTIONS.map((opt) => (
             <option key={opt.value || 'none'} value={opt.value}>
@@ -173,59 +191,57 @@ function ProductBasicForm({
             <option value={cardLabel}>{cardLabel}</option>
           )}
         </select>
-        <p className="mt-1 text-xs text-slate-500">Shown on product card (e.g. Bestseller, Hot)</p>
-      </label>
-      <label className="block">
-        <span className="text-xs font-medium text-slate-600">Ingredients</span>
+        <p className="text-xs text-muted-foreground">Shown on product card (e.g. Bestseller, Hot)</p>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Ingredients</label>
         <textarea
           value={ingredients}
           onChange={(e) => setIngredients(e.target.value)}
           rows={3}
           placeholder="E.g. Almonds, Cocoa, Sea salt"
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
-      </label>
-      <label className="block">
-        <span className="text-xs font-medium text-slate-600">Nutrition</span>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Nutrition</label>
         <textarea
           value={nutritionText}
           onChange={(e) => setNutritionText(e.target.value)}
           rows={4}
           placeholder={"Calories: 120\nProtein: 4g\nSugar: 2g"}
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono"
+          className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="text-xs text-muted-foreground">
           One per line as <span className="font-mono">Label: Value</span>.
         </p>
-      </label>
-      <div className="flex items-center gap-4">
+      </div>
+      <div className="flex items-center gap-6 pt-1">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="rounded border-slate-300"
+            className="rounded border-input text-primary focus:ring-ring"
           />
-          <span className="text-sm text-slate-600">Active</span>
+          <span className="text-sm font-medium">Active</span>
         </label>
-        <label className="flex items-center gap-2">
-          <span className="text-sm text-slate-600">Sort order</span>
-          <input
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Sort order</label>
+          <Input
             type="number"
             min={0}
             value={sortOrder}
             onChange={(e) => setSortOrder(parseInt(e.target.value, 10) || 0)}
-            className="w-20 rounded-md border border-slate-300 px-2 py-1 text-sm"
+            className="w-20"
           />
-        </label>
+        </div>
       </div>
-      <button
-        type="submit"
-        disabled={saving}
-        className="px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50"
-      >
-        {saving ? 'Saving…' : 'Save'}
-      </button>
+      <Separator />
+      <Button type="submit" disabled={saving}>
+        <Save className="mr-2 h-4 w-4" />
+        {saving ? 'Saving...' : 'Save changes'}
+      </Button>
     </form>
   );
 }
@@ -284,7 +300,7 @@ function VariantsSection({
     const priceRupees = parseFloat(vPricePaise);
     const price = Math.round((Number.isFinite(priceRupees) ? priceRupees : 0) * 100);
     if (!vName.trim() || !vSku.trim() || price < 0) {
-      setFormError('Name, SKU, and price (₹) are required.');
+      setFormError('Name, SKU, and price are required.');
       return;
     }
     setSaving(true);
@@ -346,173 +362,176 @@ function VariantsSection({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-800">Variants</h3>
-        <button
+        <h3 className="text-sm font-semibold">Variants</h3>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => { resetForm(); setAddOpen(true); }}
-          className="text-sm font-medium text-slate-600 hover:text-slate-900"
         >
-          + Add variant
-        </button>
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          Add variant
+        </Button>
       </div>
 
       {(addOpen || editing) && (
-        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-          <form onSubmit={editing ? handleUpdate : handleAdd} className="space-y-3">
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <label>
-                <span className="text-xs text-slate-600">Name</span>
-                <input
-                  type="text"
-                  value={vName}
-                  onChange={(e) => setVName(e.target.value)}
-                  className="mt-0.5 block w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                />
-              </label>
-              <label>
-                <span className="text-xs text-slate-600">SKU</span>
-                <input
-                  type="text"
-                  value={vSku}
-                  onChange={(e) => setVSku(e.target.value.toUpperCase())}
-                  className="mt-0.5 block w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                />
-              </label>
-              <label>
-                <span className="text-xs text-slate-600">Price (₹)</span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={vPricePaise}
-                  onChange={(e) => setVPricePaise(e.target.value)}
-                  placeholder="0.00"
-                  className="mt-0.5 block w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                />
-              </label>
-              <label>
-                <span className="text-xs text-slate-600">Compare at (₹)</span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={vComparePaise}
-                  onChange={(e) => setVComparePaise(e.target.value)}
-                  placeholder="0.00"
-                  className="mt-0.5 block w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                />
-              </label>
-              <label>
-                <span className="text-xs text-slate-600">Stock</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={vStock}
-                  onChange={(e) => setVStock(parseInt(e.target.value, 10) || 0)}
-                  className="mt-0.5 block w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                />
-              </label>
-              <label>
-                <span className="text-xs text-slate-600">Weight (g)</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={vWeight}
-                  onChange={(e) => setVWeight(e.target.value)}
-                  placeholder="—"
-                  className="mt-0.5 block w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                />
-              </label>
-              <label className="flex items-center gap-2 col-span-2">
-                <input
-                  type="checkbox"
-                  checked={vOutOfStock}
-                  onChange={(e) => setVOutOfStock(e.target.checked)}
-                  className="rounded border-slate-300"
-                />
-                <span className="text-sm text-slate-600">Out of stock</span>
-              </label>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-3 py-1.5 text-sm font-medium rounded bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50"
-              >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Add'}
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-3 py-1.5 text-sm font-medium rounded border border-slate-300 text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
+        <Card className="bg-muted/50">
+          <CardContent className="p-4">
+            <form onSubmit={editing ? handleUpdate : handleAdd} className="space-y-3">
+              {formError && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-3 py-2 rounded-lg text-sm">
+                  {formError}
+                </div>
+              )}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Name</label>
+                  <Input
+                    value={vName}
+                    onChange={(e) => setVName(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">SKU</label>
+                  <Input
+                    value={vSku}
+                    onChange={(e) => setVSku(e.target.value.toUpperCase())}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Price (Rs.)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={vPricePaise}
+                    onChange={(e) => setVPricePaise(e.target.value)}
+                    placeholder="0.00"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Compare at (Rs.)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={vComparePaise}
+                    onChange={(e) => setVComparePaise(e.target.value)}
+                    placeholder="0.00"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Stock</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={vStock}
+                    onChange={(e) => setVStock(parseInt(e.target.value, 10) || 0)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Weight (g)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={vWeight}
+                    onChange={(e) => setVWeight(e.target.value)}
+                    placeholder="--"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2 col-span-2 pt-4">
+                  <input
+                    type="checkbox"
+                    checked={vOutOfStock}
+                    onChange={(e) => setVOutOfStock(e.target.checked)}
+                    className="rounded border-input text-primary focus:ring-ring"
+                  />
+                  <span className="text-sm">Out of stock</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" disabled={saving}>
+                  {saving ? 'Saving...' : editing ? 'Save' : 'Add'}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={resetForm}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {variants.length === 0 ? (
-        <p className="text-sm text-slate-500">No variants yet.</p>
+        <p className="text-sm text-muted-foreground py-2">No variants yet.</p>
       ) : (
-        <div className="overflow-x-auto border border-slate-200 rounded-lg">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Name</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">SKU</th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-slate-500">Price</th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-slate-500">Compare</th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-slate-500">Stock</th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-slate-500">Weight</th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">OOS</th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-slate-500">Actions</th>
+        <div className="overflow-x-auto border rounded-lg">
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Name</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">SKU</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Price</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Compare</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Stock</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Weight</th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">OOS</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-border">
               {variants.map((v) => (
-                <tr key={v.id}>
-                  <td className="px-3 py-2 font-medium text-slate-800">{v.name}</td>
-                  <td className="px-3 py-2 text-slate-600 font-mono">{v.sku}</td>
-                  <td className="px-3 py-2 text-right text-slate-800">{formatPaise(v.price)}</td>
-                  <td className="px-3 py-2 text-right text-slate-600">
-                    {v.compareAtPrice != null ? formatPaise(v.compareAtPrice) : '—'}
+                <tr key={v.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-3 py-2 font-medium">{v.name}</td>
+                  <td className="px-3 py-2 text-muted-foreground font-mono">{v.sku}</td>
+                  <td className="px-3 py-2 text-right">{formatPaise(v.price)}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">
+                    {v.compareAtPrice != null ? formatPaise(v.compareAtPrice) : '--'}
                   </td>
-                  <td className="px-3 py-2 text-right text-slate-800">{v.stock}</td>
-                  <td className="px-3 py-2 text-right text-slate-600">
-                    {v.weightGrams != null ? `${v.weightGrams}g` : '—'}
+                  <td className="px-3 py-2 text-right">{v.stock}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">
+                    {v.weightGrams != null ? `${v.weightGrams}g` : '--'}
                   </td>
                   <td className="px-3 py-2 text-center">
                     <button
                       type="button"
                       onClick={() => handleOutOfStockToggle(v)}
-                      className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        v.outOfStock ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
-                      }`}
                     >
-                      {v.outOfStock ? 'Yes' : 'No'}
+                      <Badge variant={v.outOfStock ? 'warning' : 'secondary'} className="cursor-pointer">
+                        {v.outOfStock ? 'Yes' : 'No'}
+                      </Badge>
                     </button>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(v)}
-                      className="text-slate-600 hover:text-slate-900 mr-2"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(v.id)}
-                      disabled={deletingId === v.id}
-                      className="text-red-600 hover:text-red-800 disabled:opacity-50"
-                    >
-                      {deletingId === v.id ? '…' : 'Delete'}
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => openEdit(v)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDelete(v.id)}
+                        disabled={deletingId === v.id}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -561,7 +580,6 @@ function ImagesSection({
     const newIdx = Math.max(0, Math.min(sorted.length - 1, idx + delta));
     if (newIdx === idx) return;
     const other = sorted[newIdx];
-    // Swap sortOrder with the image we're moving past
     Promise.all([
       updateImageSortOrder(productId, img.id, other.sortOrder),
       updateImageSortOrder(productId, other.id, img.sortOrder),
@@ -580,13 +598,16 @@ function ImagesSection({
   };
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-slate-800">Images</h3>
-      <div className="flex items-center gap-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Images</h3>
         <label className="cursor-pointer">
-          <span className="inline-block px-3 py-2 text-sm font-medium rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200">
-            {uploading ? 'Uploading…' : 'Upload images'}
-          </span>
+          <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+            <span>
+              <Upload className="mr-1 h-3.5 w-3.5" />
+              {uploading ? 'Uploading...' : 'Upload images'}
+            </span>
+          </Button>
           <input
             type="file"
             accept="image/jpeg,image/png,image/gif,image/webp"
@@ -596,44 +617,59 @@ function ImagesSection({
             className="hidden"
           />
         </label>
-        {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
       </div>
+      {uploadError && (
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-3 py-2 rounded-lg text-sm">
+          {uploadError}
+        </div>
+      )}
       {sorted.length === 0 ? (
-        <p className="text-sm text-slate-500">No images yet.</p>
+        <div className="border-2 border-dashed rounded-lg py-8 text-center text-muted-foreground">
+          <Upload className="mx-auto h-8 w-8 mb-2 opacity-50" />
+          <p className="text-sm">No images yet. Upload some to get started.</p>
+        </div>
       ) : (
         <div className="flex flex-wrap gap-4">
           {sorted.map((img, idx) => (
-            <div key={img.id} className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+            <div key={img.id} className="group relative border rounded-lg overflow-hidden bg-muted/30">
               <img src={img.url} alt="" className="w-32 h-32 object-cover" />
-              <div className="p-2 flex items-center justify-between text-xs">
-                <span className="text-slate-500">Order: {img.sortOrder}</span>
-                <div className="flex gap-1">
-                  <button
+              <div className="p-2 flex items-center justify-between">
+                <Badge variant="secondary" className="text-[10px]">
+                  #{img.sortOrder}
+                </Badge>
+                <div className="flex gap-0.5">
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
                     onClick={() => handleMove(img, -1)}
                     disabled={idx === 0}
-                    className="p-1 rounded hover:bg-slate-200 disabled:opacity-30"
                     title="Move left"
                   >
-                    ←
-                  </button>
-                  <button
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
                     onClick={() => handleMove(img, 1)}
                     disabled={idx === sorted.length - 1}
-                    className="p-1 rounded hover:bg-slate-200 disabled:opacity-30"
                     title="Move right"
                   >
-                    →
-                  </button>
-                  <button
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={() => handleDeleteImg(img.id)}
                     disabled={deletingId === img.id}
-                    className="p-1 rounded text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
-                    Delete
-                  </button>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
             </div>
@@ -672,24 +708,45 @@ export function ProductEditPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-
   if (loading && !product) {
     return (
-      <div className="p-4 sm:p-6">
-        <div className="text-slate-500">Loading…</div>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-8 w-64" />
+        </div>
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-full" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6 space-y-3">
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-24 w-full" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (error && !product) {
     return (
-      <div className="p-4 sm:p-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+      <div className="space-y-4">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
           {error}
         </div>
-        <Link to="/products" className="mt-4 inline-block text-sm text-slate-600 hover:text-slate-900">
-          ← Back to products
-        </Link>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/products">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to products
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -697,38 +754,79 @@ export function ProductEditPage() {
   if (!product) return null;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      {/* Header */}
       <div>
-        <Link to="/products" className="text-sm text-slate-600 hover:text-slate-900 mb-1 inline-block">
-          ← Back to products
-        </Link>
-        <h1 className="text-2xl font-bold text-slate-800">Edit: {product.name}</h1>
+        <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2 text-muted-foreground">
+          <Link to="/products">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to products
+          </Link>
+        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <Package className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Edit: {product.name}</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant={product.isActive ? 'success' : 'secondary'}>
+                {product.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+              {product.cardLabel && (
+                <Badge variant="purple">{product.cardLabel}</Badge>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Basic details</h2>
-        <ProductBasicForm
-          product={product}
-          categories={categories}
-          onSaved={() => loadProduct()}
-        />
-      </section>
+      {/* Basic details */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Basic details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ProductBasicForm
+            product={product}
+            categories={categories}
+            onSaved={() => loadProduct()}
+          />
+        </CardContent>
+      </Card>
 
-      <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-        <VariantsSection
-          productId={product.id}
-          variants={product.variants}
-          onRefresh={loadProduct}
-        />
-      </section>
+      {/* Variants */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Variants & Pricing</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <VariantsSection
+            productId={product.id}
+            variants={product.variants}
+            onRefresh={loadProduct}
+          />
+        </CardContent>
+      </Card>
 
-      <section className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-        <ImagesSection
-          productId={product.id}
-          images={product.images}
-          onRefresh={loadProduct}
-        />
-      </section>
-    </div>
+      {/* Images */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Images</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ImagesSection
+            productId={product.id}
+            images={product.images}
+            onRefresh={loadProduct}
+          />
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

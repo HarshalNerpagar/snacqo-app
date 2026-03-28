@@ -14,6 +14,9 @@ router.get('/', requireAdmin, async (_req, res) => {
     const startOfLast30Days = new Date(startOfToday);
     startOfLast30Days.setDate(startOfLast30Days.getDate() - 30);
 
+    // Only count orders where payment was at least attempted (exclude ghost/abandoned checkouts)
+    const paidFilter = { razorpayPaymentStatus: { not: null } };
+
     const [
       ordersToday,
       ordersThisWeek,
@@ -25,14 +28,15 @@ router.get('/', requireAdmin, async (_req, res) => {
       lowStockVariants,
       activeProducts,
       activeCoupons,
+      totalCustomers,
       ordersLast30Days,
       itemsWithOrderId,
     ] = await Promise.all([
       prisma.order.count({
-        where: { createdAt: { gte: startOfToday } },
+        where: { createdAt: { gte: startOfToday }, ...paidFilter },
       }),
       prisma.order.count({
-        where: { createdAt: { gte: startOfWeek } },
+        where: { createdAt: { gte: startOfWeek }, ...paidFilter },
       }),
       // Revenue: only orders where Razorpay payment status is captured (successful payment)
       prisma.order.aggregate({
@@ -49,9 +53,9 @@ router.get('/', requireAdmin, async (_req, res) => {
         },
         _sum: { total: true },
       }),
-      prisma.order.count(),
-      prisma.order.count({ where: { status: 'DELIVERED' } }),
-      prisma.order.count({ where: { status: 'CANCELLED' } }),
+      prisma.order.count({ where: paidFilter }),
+      prisma.order.count({ where: { status: 'DELIVERED', ...paidFilter } }),
+      prisma.order.count({ where: { status: 'CANCELLED', ...paidFilter } }),
       prisma.productVariant.findMany({
         where: {
           isActive: true,
@@ -71,6 +75,7 @@ router.get('/', requireAdmin, async (_req, res) => {
       }),
       prisma.product.count({ where: { isActive: true } }),
       prisma.coupon.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { role: 'USER' } }),
       // Orders per day for last 30 days (for chart)
       prisma.order.findMany({
         where: { createdAt: { gte: startOfLast30Days } },
@@ -163,6 +168,7 @@ router.get('/', requireAdmin, async (_req, res) => {
       counts: {
         activeProducts,
         activeCoupons,
+        totalCustomers,
       },
       productWiseOrders,
       ordersByDay,

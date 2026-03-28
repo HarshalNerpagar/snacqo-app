@@ -21,19 +21,41 @@ const orderInclude = {
       },
     },
   },
+  campus: { select: { id: true, name: true, line1: true, city: true, state: true, pincode: true } },
+  user: { select: { id: true, email: true, firstName: true, lastName: true } },
 };
 
-// GET /admin/orders ?status=&page=&limit=
+// GET /admin/orders ?status=&paymentStatus=&search=&hideUnpaid=true&page=&limit=
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const status = typeof req.query.status === 'string' ? req.query.status.trim().toUpperCase() : undefined;
+    const paymentStatus = typeof req.query.paymentStatus === 'string' ? req.query.paymentStatus.trim().toLowerCase() : undefined;
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : undefined;
+    const hideUnpaid = req.query.hideUnpaid !== 'false'; // default true
     const page = Math.max(1, parseInt(String(req.query.page), 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit), 10) || 20));
     const skip = (page - 1) * limit;
 
-    const where = status && ORDER_STATUSES.includes(status as OrderStatus)
-      ? { status: status as OrderStatus }
-      : {};
+    const where: Record<string, unknown> = {};
+
+    if (status && ORDER_STATUSES.includes(status as OrderStatus)) {
+      where.status = status as OrderStatus;
+    }
+    if (paymentStatus) {
+      where.razorpayPaymentStatus = paymentStatus;
+    }
+    // Default: hide orders with no payment attempt (ghost/abandoned checkouts)
+    if (hideUnpaid && !paymentStatus) {
+      where.razorpayPaymentStatus = { not: null };
+    }
+    if (search) {
+      where.OR = [
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { shippingName: { contains: search, mode: 'insensitive' } },
+        { shippingPhone: { contains: search } },
+      ];
+    }
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
@@ -46,8 +68,11 @@ router.get('/', requireAdmin, async (req, res) => {
           orderNumber: true,
           email: true,
           status: true,
+          razorpayPaymentStatus: true,
+          deliveryType: true,
           total: true,
           currency: true,
+          shippingName: true,
           createdAt: true,
           _count: { select: { items: true } },
         },

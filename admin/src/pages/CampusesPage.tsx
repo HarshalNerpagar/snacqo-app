@@ -6,6 +6,12 @@ import {
   deleteCampus,
   type Campus,
 } from '@/api/campuses';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { MapPin, Plus } from 'lucide-react';
 
 export function CampusesPage() {
   const [campuses, setCampuses] = useState<Campus[]>([]);
@@ -134,210 +140,262 @@ export function CampusesPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Campuses</h1>
-      <p className="text-sm text-slate-600">
-        Campuses where you deliver. Customers who select campus delivery get free shipping. Add at least one campus to enable campus delivery at checkout.
-      </p>
-
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
-        <h2 className="text-sm font-semibold text-slate-800 mb-3">Add campus</h2>
-        <form onSubmit={handleAddSubmit} className="space-y-3 max-w-xl">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-slate-600">Name</span>
-              <input
-                type="text"
-                value={addName}
-                onChange={(e) => setAddName(e.target.value)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                placeholder="e.g. Rishihood University"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-slate-600">Sort order</span>
-              <input
-                type="number"
-                min={0}
-                value={addSortOrder}
-                onChange={(e) => setAddSortOrder(parseInt(e.target.value, 10) || 0)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm w-24 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-              />
-            </label>
-          </div>
-          <label className="block flex flex-col gap-1">
-            <span className="text-xs font-medium text-slate-600">Address line 1</span>
-            <input
-              type="text"
-              value={addLine1}
-              onChange={(e) => setAddLine1(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-              placeholder="Building / area"
-            />
-          </label>
-          <label className="block flex flex-col gap-1">
-            <span className="text-xs font-medium text-slate-600">Address line 2 (optional)</span>
-            <input
-              type="text"
-              value={addLine2}
-              onChange={(e) => setAddLine2(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-            />
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-slate-600">City</span>
-              <input
-                type="text"
-                value={addCity}
-                onChange={(e) => setAddCity(e.target.value)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-slate-600">State</span>
-              <input
-                type="text"
-                value={addState}
-                onChange={(e) => setAddState(e.target.value)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-slate-600">Pincode</span>
-              <input
-                type="text"
-                value={addPincode}
-                onChange={(e) => setAddPincode(e.target.value)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-              />
-            </label>
-          </div>
-          {addError && <p className="text-sm text-red-600">{addError}</p>}
-          <button
-            type="submit"
-            disabled={adding || !addName.trim() || !addLine1.trim() || !addCity.trim() || !addState.trim() || !addPincode.trim()}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {adding ? 'Adding…' : 'Add campus'}
-          </button>
-        </form>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <MapPin className="h-6 w-6 text-muted-foreground" />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Campuses</h1>
+          <p className="text-sm text-muted-foreground">
+            Campuses where you deliver. Customers who select campus delivery get free shipping. Add at least one campus to enable campus delivery at checkout.
+          </p>
+        </div>
       </div>
 
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add campus
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleAddSubmit} className="space-y-3 max-w-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Name</span>
+                <Input
+                  type="text"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  placeholder="e.g. Rishihood University"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Sort order</span>
+                <Input
+                  type="number"
+                  min={0}
+                  value={addSortOrder}
+                  onChange={(e) => setAddSortOrder(parseInt(e.target.value, 10) || 0)}
+                  className="w-24"
+                />
+              </label>
+            </div>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Address line 1</span>
+              <Input
+                type="text"
+                value={addLine1}
+                onChange={(e) => setAddLine1(e.target.value)}
+                placeholder="Building / area"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Address line 2 (optional)</span>
+              <Input
+                type="text"
+                value={addLine2}
+                onChange={(e) => setAddLine2(e.target.value)}
+              />
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">City</span>
+                <Input
+                  type="text"
+                  value={addCity}
+                  onChange={(e) => setAddCity(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">State</span>
+                <Input
+                  type="text"
+                  value={addState}
+                  onChange={(e) => setAddState(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Pincode</span>
+                <Input
+                  type="text"
+                  value={addPincode}
+                  onChange={(e) => setAddPincode(e.target.value)}
+                />
+              </label>
+            </div>
+            {addError && <p className="text-sm text-destructive">{addError}</p>}
+            <Button
+              type="submit"
+              disabled={adding || !addName.trim() || !addLine1.trim() || !addCity.trim() || !addState.trim() || !addPincode.trim()}
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {adding ? 'Adding...' : 'Add campus'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="text-slate-500 py-8">Loading…</div>
+        <Card>
+          <CardContent className="p-6 space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-64" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-4 w-20 ml-auto" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       ) : (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Address</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Active</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {campuses.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm font-medium text-slate-800">{c.name}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {c.line1}
-                    {c.line2 ? `, ${c.line2}` : ''}, {c.city}, {c.state} {c.pincode}
-                  </td>
-                  <td className="px-4 py-3 text-sm">{c.isActive ? 'Yes' : 'No'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button type="button" onClick={() => openEdit(c)} className="text-sm font-medium text-slate-600 hover:text-slate-900 mr-3">
-                      Edit
-                    </button>
-                    <button type="button" onClick={() => openDelete(c)} className="text-sm font-medium text-red-600 hover:text-red-800">
-                      Delete
-                    </button>
-                  </td>
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Address</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {campuses.length === 0 && (
-            <div className="px-4 py-8 text-center text-slate-500 text-sm">No campuses yet. Add one to enable campus delivery.</div>
-          )}
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {campuses.map((c) => (
+                  <tr key={c.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">{c.name}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {c.line1}
+                      {c.line2 ? `, ${c.line2}` : ''}, {c.city}, {c.state} {c.pincode}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={c.isActive ? 'success' : 'secondary'}>
+                        {c.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(c)}>
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => openDelete(c)}
+                      >
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {campuses.length === 0 && (
+              <div className="px-4 py-8 text-center text-muted-foreground text-sm">No campuses yet. Add one to enable campus delivery.</div>
+            )}
+          </div>
+        </Card>
       )}
 
+      {/* Edit modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !updating && setEditing(null)}>
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Edit campus</h2>
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Name</span>
-                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" required />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Address line 1</span>
-                <input type="text" value={editLine1} onChange={(e) => setEditLine1(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" required />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Address line 2 (optional)</span>
-                <input type="text" value={editLine2} onChange={(e) => setEditLine2(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <div className="grid grid-cols-2 gap-4">
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle>Edit campus</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleEditSubmit} className="space-y-4">
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">City</span>
-                  <input type="text" value={editCity} onChange={(e) => setEditCity(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" required />
+                  <span className="text-sm font-medium text-muted-foreground">Name</span>
+                  <Input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1" required />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">State</span>
-                  <input type="text" value={editState} onChange={(e) => setEditState(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" required />
+                  <span className="text-sm font-medium text-muted-foreground">Address line 1</span>
+                  <Input type="text" value={editLine1} onChange={(e) => setEditLine1(e.target.value)} className="mt-1" required />
                 </label>
-              </div>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Pincode</span>
-                <input type="text" value={editPincode} onChange={(e) => setEditPincode(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm w-32" required />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Sort order</span>
-                <input type="number" min={0} value={editSortOrder} onChange={(e) => setEditSortOrder(parseInt(e.target.value, 10) || 0)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm w-24" />
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={editIsActive} onChange={(e) => setEditIsActive(e.target.checked)} className="rounded border-slate-300" />
-                <span className="text-sm font-medium text-slate-600">Active (shown at checkout)</span>
-              </label>
-              {editError && <p className="text-sm text-red-600">{editError}</p>}
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setEditing(null)} disabled={updating} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                  Cancel
-                </button>
-                <button type="submit" disabled={updating} className="px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50">
-                  {updating ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Address line 2 (optional)</span>
+                  <Input type="text" value={editLine2} onChange={(e) => setEditLine2(e.target.value)} className="mt-1" />
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="block">
+                    <span className="text-sm font-medium text-muted-foreground">City</span>
+                    <Input type="text" value={editCity} onChange={(e) => setEditCity(e.target.value)} className="mt-1" required />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-muted-foreground">State</span>
+                    <Input type="text" value={editState} onChange={(e) => setEditState(e.target.value)} className="mt-1" required />
+                  </label>
+                </div>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Pincode</span>
+                  <Input type="text" value={editPincode} onChange={(e) => setEditPincode(e.target.value)} className="mt-1 w-32" required />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Sort order</span>
+                  <Input type="number" min={0} value={editSortOrder} onChange={(e) => setEditSortOrder(parseInt(e.target.value, 10) || 0)} className="mt-1 w-24" />
+                </label>
+                {/* Toggle switch for isActive */}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editIsActive}
+                      onChange={(e) => setEditIsActive(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground">Active (shown at checkout)</span>
+                </label>
+                {editError && <p className="text-sm text-destructive">{editError}</p>}
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setEditing(null)} disabled={updating}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={updating}>
+                    {updating ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
 
+      {/* Delete confirm modal */}
       {deleting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !deleteInProgress && setDeleting(null)}>
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-800 mb-2">Delete campus?</h2>
-            <p className="text-sm text-slate-600 mb-4">“{deleting.name}” will be removed. Customers will no longer see it at checkout.</p>
-            {deleteError && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md">{deleteError}</div>}
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setDeleting(null)} disabled={deleteInProgress} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                Cancel
-              </button>
-              <button type="button" onClick={handleDeleteConfirm} disabled={deleteInProgress} className="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">
-                {deleteInProgress ? 'Deleting…' : 'Delete'}
-              </button>
-            </div>
-          </div>
+          <Card className="w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle>Delete campus?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">"{deleting.name}" will be removed. Customers will no longer see it at checkout.</p>
+              {deleteError && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-md">
+                  {deleteError}
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setDeleting(null)} disabled={deleteInProgress}>
+                  Cancel
+                </Button>
+                <Button type="button" variant="destructive" onClick={handleDeleteConfirm} disabled={deleteInProgress}>
+                  {deleteInProgress ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

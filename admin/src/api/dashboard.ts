@@ -32,7 +32,7 @@ export interface DashboardResponse {
   orders: { today: number; thisWeek: number; total: number; delivered: number; cancelled: number };
   revenue: { todayPaise: number; thisWeekPaise: number };
   lowStock: LowStockVariant[];
-  counts: { activeProducts: number; activeCoupons: number };
+  counts: { activeProducts: number; activeCoupons: number; totalCustomers: number };
   productWiseOrders: ProductWiseOrder[];
   ordersByDay: OrdersByDay[];
   ordersByStatus: OrdersByStatusItem[];

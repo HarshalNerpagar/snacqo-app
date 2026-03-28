@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import { Layout } from '@/components/Layout';
 import { Marquee } from '@/components/Marquee';
 import { Hero } from '@/components/Hero';
@@ -20,7 +22,7 @@ import { SavedAddressesPage } from '@/pages/account/SavedAddressesPage';
 import { OrderHistoryPage } from '@/pages/account/OrderHistoryPage';
 import { AccountProfilePage } from '@/pages/account/AccountProfilePage';
 import { CheckoutLayout } from '@/components/CheckoutLayout';
-import { OrderConfirmedLayout } from '@/components/OrderConfirmedLayout';
+
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignUpPage } from '@/pages/auth/SignUpPage';
 import { AboutPage } from '@/pages/AboutPage';
@@ -75,6 +77,7 @@ function HomePage() {
 
 function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
@@ -91,7 +94,7 @@ function App() {
         <Route path="/login" element={<Layout><LoginPage /></Layout>} />
         <Route path="/signup" element={<Layout><SignUpPage /></Layout>} />
         <Route path="/checkout" element={<CheckoutLayout step="shipping"><CheckoutShippingPage /></CheckoutLayout>} />
-        <Route path="/order-confirmed" element={<OrderConfirmedLayout><OrderConfirmedPage /></OrderConfirmedLayout>} />
+        <Route path="/order-confirmed" element={<Layout><OrderConfirmedPage /></Layout>} />
         <Route path="/account" element={<Layout><AccountLayout /></Layout>}>
           <Route index element={<AccountOverviewPage />} />
           <Route path="orders" element={<OrderHistoryPage />} />
@@ -102,6 +105,7 @@ function App() {
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

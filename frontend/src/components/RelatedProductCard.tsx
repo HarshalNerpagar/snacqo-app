@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { Product } from '@/types/product';
@@ -10,6 +11,16 @@ interface RelatedProductCardProps {
 }
 
 export function RelatedProductCard({ product, tag, onAddToCart }: RelatedProductCardProps) {
+  const [justAdded, setJustAdded] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onAddToCart?.(product);
+    setJustAdded(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setJustAdded(false), 1500);
+  };
   return (
     <motion.div
       className="group relative hover:-translate-y-2 transition-transform duration-300"
@@ -49,14 +60,17 @@ export function RelatedProductCard({ product, tag, onAddToCart }: RelatedProduct
             ) : (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onAddToCart?.(product);
-                }}
-                className="absolute bottom-2 right-2 bg-white p-2 border-2 border-text-chocolate shadow-chunky-sm hover:bg-primary hover:text-white transition-colors"
+                onClick={handleAdd}
+                className={`absolute bottom-2 right-2 p-2 border-2 border-text-chocolate shadow-chunky-sm transition-colors ${
+                  justAdded
+                    ? 'bg-green-400 text-text-chocolate'
+                    : 'bg-white hover:bg-primary hover:text-white'
+                }`}
                 aria-label={`Add ${product.name} to cart`}
               >
-                <span className="material-symbols-outlined text-sm font-bold">add_shopping_cart</span>
+                <span className="material-symbols-outlined text-sm font-bold">
+                  {justAdded ? 'check' : 'add_shopping_cart'}
+                </span>
               </button>
             )}
           </div>

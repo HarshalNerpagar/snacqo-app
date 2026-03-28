@@ -47,7 +47,7 @@ model User {
   newsletter    Boolean   @default(false)
   role          UserRole  @default(USER)
   passwordHash  String?   // Admin only; null for customers (OTP only)
-  createdAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   addresses Address[]
@@ -67,7 +67,7 @@ model Address {
   state     String
   pincode   String
   isDefault Boolean  @default(false)
-  createdAt DateTime @updatedAt
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -80,7 +80,7 @@ model Category {
   name      String
   slug      String   @unique
   sortOrder Int      @default(0)
-  createdAt DateTime @updatedAt
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   products Product[]
@@ -98,7 +98,7 @@ model Product {
   cardLabel        String?  // e.g. Bestseller, Hot, Favourite - shown on product card
   isActive         Boolean  @default(true)
   sortOrder        Int      @default(0)
-  createdAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   category Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -111,7 +111,7 @@ model ProductImage {
   productId String
   url       String
   sortOrder Int      @default(0)
-  createdAt DateTime @updatedAt
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -128,7 +128,7 @@ model ProductVariant {
   weightGrams    Int?
   isActive       Boolean  @default(true)
   outOfStock     Boolean  @default(false) // Admin toggle: show as out of stock on frontend
-  createdAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -140,7 +140,7 @@ model Cart {
   id        String   @id @default(cuid())
   userId    String?
   sessionId String?  // Guest cart
-  createdAt DateTime @updatedAt
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -152,7 +152,7 @@ model CartItem {
   cartId    String
   variantId String
   quantity  Int      // Min 1
-  createdAt DateTime @updatedAt
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   cart    Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
@@ -171,7 +171,7 @@ model Campus {
   pincode   String
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
-  createdAt DateTime @updatedAt
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   orders Order[]
@@ -202,7 +202,7 @@ model Order {
   razorpayPaymentId     String?
   razorpaySignature     String?
   razorpayPaymentStatus String?   // Razorpay payment status: captured | failed | authorized | created | refunded
-  createdAt             DateTime  @updatedAt
+  createdAt             DateTime  @default(now())
   updatedAt          DateTime     @updatedAt
 
   user    User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -221,7 +221,7 @@ model OrderReview {
   text              String?  
   imageUrls         String[] @default([]) // Cloudinary URLs
   videoUrl          String?
-  createdAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -236,7 +236,7 @@ model OrderItem {
   quantity    Int
   price       Int      // Unit price, paise
   total       Int      // quantity * price, paise
-  createdAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -256,7 +256,7 @@ model Coupon {
   isActive          Boolean    @default(true)
   campusOnly        Boolean    @default(false)  // if true, only valid for campus delivery orders
   allowedCampusIds  String[]   @default([])     // if campusOnly and non-empty, only these campus IDs
-  createdAt         DateTime   @updatedAt
+  createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 }
 

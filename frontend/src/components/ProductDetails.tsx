@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ProductAccordion } from '@/components/ProductAccordion';
 import { StarIcon } from '@/components/StarIcon';
 import type { ProductDetail, ProductSizeOption } from '@/types/productDetail';
 
 interface ProductDetailsProps {
   product: ProductDetail;
-  onAddToCart?: (product: ProductDetail, sizeId: string, quantity: number) => void;
+  onAddToCart?: (product: ProductDetail, sizeId: string, quantity: number) => Promise<void> | void;
 }
 
 const FEATURES = [
@@ -29,12 +29,26 @@ function StarRating({ rating }: { rating: number }) {
 export function ProductDetails({ product, onAddToCart }: ProductDetailsProps) {
   const [selectedSizeId, setSelectedSizeId] = useState<string>(product.sizes[0]?.id ?? '');
   const [quantity, setQuantity] = useState(1);
+  const [addedFeedback, setAddedFeedback] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedSize = product.sizes.find((s) => s.id === selectedSizeId);
   const isOutOfStock = selectedSize?.outOfStock === true;
 
-  const handleAddToCart = () => {
-    if (isOutOfStock) return;
-    onAddToCart?.(product, selectedSizeId, quantity);
+  const handleAddToCart = async () => {
+    if (isOutOfStock || adding) return;
+    setAdding(true);
+    try {
+      await onAddToCart?.(product, selectedSizeId, quantity);
+      // Show "Added!" feedback
+      setAddedFeedback(true);
+      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+      feedbackTimer.current = setTimeout(() => setAddedFeedback(false), 1500);
+    } catch {
+      // Error is handled by the parent
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
@@ -139,14 +153,51 @@ export function ProductDetails({ product, onAddToCart }: ProductDetailsProps) {
             <motion.button
               type="button"
               onClick={handleAddToCart}
-              className="flex-1 h-[52px] sm:h-16 bg-accent-mango text-text-chocolate border-2 border-text-chocolate shadow-chunky-lg hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-chunky hover:-rotate-1 transition-all flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-lg btn-text uppercase tracking-wide group"
+              disabled={adding}
+              className={`flex-1 h-[52px] sm:h-16 border-2 border-text-chocolate shadow-chunky-lg hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-chunky hover:-rotate-1 transition-all flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-lg btn-text uppercase tracking-wide group ${
+                addedFeedback
+                  ? 'bg-green-400 text-text-chocolate'
+                  : 'bg-accent-mango text-text-chocolate'
+              } disabled:opacity-70`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <span>Add To Cart</span>
-              <span className="material-symbols-outlined text-base sm:text-xl group-hover:animate-bounce">
-                shopping_cart
-              </span>
+              <AnimatePresence mode="wait">
+                {adding ? (
+                  <motion.span
+                    key="adding"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-base sm:text-xl animate-spin">progress_activity</span>
+                    <span>Adding…</span>
+                  </motion.span>
+                ) : addedFeedback ? (
+                  <motion.span
+                    key="added"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-base sm:text-xl">check_circle</span>
+                    <span>Added!</span>
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="add"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span>Add To Cart</span>
+                    <span className="material-symbols-outlined text-base sm:text-xl group-hover:animate-bounce">shopping_cart</span>
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </motion.button>
           )}
         </div>

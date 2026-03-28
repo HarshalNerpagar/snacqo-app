@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { getProfile } from '@/api/users';
 import { listAddresses, toSavedAddress } from '@/api/addresses';
 import { getOrders, formatPrice } from '@/api/orders';
-import type { SavedAddress } from '@/types/account';
+import { queryKeys } from '@/lib/queryClient';
 
 function formatOrderDate(iso: string): string {
   try {
@@ -29,36 +30,47 @@ function formatOrderStatus(status: string): string {
 }
 
 export function AccountOverviewPage() {
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [defaultAddress, setDefaultAddress] = useState<SavedAddress | null>(null);
-  const [recentOrders, setRecentOrders] = useState<{ id: string; orderNumber: string; date: string; total: string; status: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: profileData, isLoading: profileLoading } = useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: () => getProfile(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: addressesData, isLoading: addressesLoading } = useQuery({
+    queryKey: queryKeys.addresses,
+    queryFn: () => listAddresses(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+    queryKey: queryKeys.orders,
+    queryFn: () => getOrders(),
+    staleTime: 60 * 1000,
+  });
 
-  useEffect(() => {
-    Promise.all([getProfile(), listAddresses(), getOrders()])
-      .then(([{ user }, { addresses }, { orders }]) => {
-        const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email.split('@')[0] || 'Snacker';
-        setUserName(name);
-        setUserEmail(user.email);
-        const list = addresses.map(toSavedAddress);
-        const defaultAddr = list.find((a) => a.isDefault) ?? list[0] ?? null;
-        setDefaultAddress(defaultAddr);
-        setRecentOrders(
-          orders
-            .slice(0, 3)
-            .map((o) => ({
-              id: o.id,
-              orderNumber: o.orderNumber,
-              date: formatOrderDate(o.createdAt),
-              total: formatPrice(o.total),
-              status: formatOrderStatus(o.status),
-            }))
-        );
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const loading = profileLoading || addressesLoading || ordersLoading;
+
+  const userName = useMemo(() => {
+    const user = profileData?.user;
+    if (!user) return '';
+    return [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email.split('@')[0] || 'Snacker';
+  }, [profileData]);
+
+  const userEmail = profileData?.user?.email ?? '';
+
+  const defaultAddress = useMemo(() => {
+    const list = (addressesData?.addresses ?? []).map(toSavedAddress);
+    return list.find((a) => a.isDefault) ?? list[0] ?? null;
+  }, [addressesData]);
+
+  const recentOrders = useMemo(() =>
+    (ordersData?.orders ?? []).slice(0, 3).map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      date: formatOrderDate(o.createdAt),
+      total: formatPrice(o.total),
+      status: formatOrderStatus(o.status),
+    })),
+    [ordersData]
+  );
 
   if (loading) {
     return (

@@ -11,6 +11,9 @@ import { CategoriesPage } from '@/pages/CategoriesPage';
 import { OrderDetailPage } from '@/pages/OrderDetailPage';
 import { CouponsPage } from '@/pages/CouponsPage';
 import { CampusesPage } from '@/pages/CampusesPage';
+import { CustomersPage } from '@/pages/CustomersPage';
+import { ReviewsPage } from '@/pages/ReviewsPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 
 function App() {
   return (
@@ -33,6 +36,9 @@ function App() {
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="coupons" element={<CouponsPage />} />
         <Route path="campuses" element={<CampusesPage />} />
+        <Route path="customers" element={<CustomersPage />} />
+        <Route path="reviews" element={<ReviewsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

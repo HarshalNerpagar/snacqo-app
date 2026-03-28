@@ -3,9 +3,14 @@ import type { CartSummary } from '@/types/cart';
 
 interface CartOrderSummaryProps {
   summary: CartSummary;
+  /** Paise threshold for free shipping (from server). Null if already free or unknown. */
+  freeShippingAt?: number | null;
 }
 
-export function CartOrderSummary({ summary }: CartOrderSummaryProps) {
+export function CartOrderSummary({ summary, freeShippingAt }: CartOrderSummaryProps) {
+  const freeShippingLabel = freeShippingAt
+    ? `Free delivery on orders above ₹${Math.round(freeShippingAt / 100)}`
+    : 'Free delivery on orders above ₹499';
   return (
     <div className="w-full min-w-0 sticky top-36 isolate">
       <div className="w-full min-w-0 bg-white rounded-xl border-4 border-text-chocolate p-4 sm:p-6 md:p-8 sm:rotate-1 sm:hover:rotate-0 transition-transform duration-300 relative z-10 shadow-[6px_6px_0px_0px_#2D1B0E] overflow-visible">
@@ -34,7 +39,7 @@ export function CartOrderSummary({ summary }: CartOrderSummaryProps) {
         </div>
         <p className="flex items-center gap-2 text-sm font-bold text-primary mb-4">
           <span className="material-symbols-outlined text-base">local_shipping</span>
-          Free delivery on orders above ₹499
+          {freeShippingLabel}
         </p>
         <div className="border-t-2 border-dashed border-text-chocolate/30 pt-4 mb-6 sm:mb-8">
           <div className="flex justify-between items-end gap-2">

@@ -7,7 +7,7 @@ import type { Request, Response } from 'express';
 import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import { uploadImage, uploadVideo } from '../services/cloudinary.js';
 import { formatDateTimeIST } from '../utils/date.js';
-import { findCart, getOrCreateCart, getStandardShippingPaise } from './cart.js';
+import { findCart, getOrCreateCart, getShippingConfig, computeShipping } from './cart.js';
 import prisma from '../lib/prisma.js';
 
 const router = Router();
@@ -241,7 +241,8 @@ router.post('/', optionalAuth, async (req, res) => {
       freeShipping = freeShipping || result.freeShipping;
     }
 
-    const shippingAmount = freeShipping || isCampusOrder ? 0 : getStandardShippingPaise(subtotal);
+    const shippingConfig = await getShippingConfig(prisma);
+    const shippingAmount = freeShipping || isCampusOrder ? 0 : computeShipping(subtotal, shippingConfig);
     const total = Math.max(0, subtotal - discountAmount + shippingAmount);
     const orderNumber = generateOrderNumber();
     const couponCodeStored = codesToApply.length > 0 ? codesToApply.join(',') : undefined;
@@ -378,7 +379,7 @@ router.post('/:orderId/create-payment-order', optionalAuth, async (req, res) => 
     }
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, orderNumber: true, total: true, currency: true, status: true },
+      select: { id: true, orderNumber: true, total: true, currency: true, status: true, razorpayOrderId: true },
     });
     if (!order) {
       res.status(404).json({ error: 'Order not found.' });
@@ -386,6 +387,17 @@ router.post('/:orderId/create-payment-order', optionalAuth, async (req, res) => 
     }
     if (order.status !== 'PENDING') {
       res.status(400).json({ error: 'Order is not pending payment.' });
+      return;
+    }
+    // Idempotency: if a Razorpay order already exists for this order, return it
+    // instead of creating a duplicate. Prevents double-charge on retries.
+    if (order.razorpayOrderId) {
+      res.json({
+        razorpayOrderId: order.razorpayOrderId,
+        key: razorpayKeyId,
+        amount: order.total,
+        currency: order.currency,
+      });
       return;
     }
     const rzpOrder = await new Promise<{ id: string }>((resolve, reject) => {
@@ -441,13 +453,19 @@ router.post('/:orderId/verify-payment', optionalAuth, async (req, res) => {
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, total: true, razorpayPaymentId: true },
     });
     if (!order) {
       res.status(404).json({ error: 'Order not found.' });
       return;
     }
     if (order.status !== 'PENDING') {
+      // Already verified — idempotent success if same payment ID
+      if (order.razorpayPaymentId === razorpayPaymentId) {
+        const existing = await prisma.order.findUnique({ where: { id: orderId }, include: orderInclude });
+        res.json({ success: true, order: existing });
+        return;
+      }
       res.status(400).json({ error: 'Order is not pending payment.' });
       return;
     }
@@ -461,20 +479,48 @@ router.post('/:orderId/verify-payment', optionalAuth, async (req, res) => {
       return;
     }
 
-    // Fetch payment from Razorpay to get actual status (captured / failed / etc.)
+    // Fetch payment from Razorpay to get actual status and verify amount
     const payment = await razorpay.payments.fetch(razorpayPaymentId);
     const razorpayPaymentStatus = payment.status as string;
+
+    // Verify the captured amount matches the order total
+    if (razorpayPaymentStatus === 'captured' && (payment.amount as number) !== order.total) {
+      console.error(`[payment] Amount mismatch: order ${orderId} expected ${order.total} paise, Razorpay captured ${payment.amount}`);
+      res.status(400).json({ error: 'Payment amount does not match order total. Please contact support.' });
+      return;
+    }
+
+    const isCaptured = razorpayPaymentStatus === 'captured';
+    const isFailed = razorpayPaymentStatus === 'failed';
 
     await prisma.order.update({
       where: { id: orderId },
       data: {
-        status: razorpayPaymentStatus === 'captured' ? 'PROCESSING' : 'PENDING',
+        status: isCaptured ? 'PROCESSING' : 'PENDING',
         razorpayOrderId,
         razorpayPaymentId,
         razorpaySignature,
         razorpayPaymentStatus,
       },
     });
+
+    // If payment failed, revert coupon usedCount so the quota isn't consumed
+    // by an order that will never be fulfilled.
+    if (isFailed) {
+      const failedOrder = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { couponCode: true },
+      });
+      if (failedOrder?.couponCode) {
+        const codes = failedOrder.couponCode.split(',').map((c) => c.trim().toUpperCase()).filter(Boolean);
+        for (const code of codes) {
+          await prisma.coupon.updateMany({
+            where: { code },
+            data: { usedCount: { decrement: 1 } },
+          });
+        }
+      }
+    }
 
     const orderWithItems = await prisma.order.findUnique({
       where: { id: orderId },

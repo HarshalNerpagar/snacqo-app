@@ -19,8 +19,20 @@ export function loadRazorpayScript(): Promise<void> {
     const script = document.createElement('script');
     script.src = SCRIPT_URL;
     script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Razorpay checkout'));
+    script.onload = () => {
+      if (window.Razorpay) {
+        resolve();
+      } else {
+        scriptLoaded = null;
+        script.remove();
+        reject(new Error('Payment system failed to initialize. Please refresh and try again.'));
+      }
+    };
+    script.onerror = () => {
+      scriptLoaded = null;
+      script.remove();
+      reject(new Error('Failed to load payment system. Please check your internet connection and try again.'));
+    };
     document.head.appendChild(script);
   });
   return scriptLoaded;

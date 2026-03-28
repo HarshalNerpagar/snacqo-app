@@ -20,6 +20,8 @@ interface CheckoutOrderSummaryProps {
   onRemoveCoupon?: (code: string) => void;
   /** When true, price rows show a subtle refreshing state (server re-computing totals) */
   summaryLoading?: boolean;
+  /** Paise threshold for free shipping (from server). Null if already free. */
+  freeShippingAt?: number | null;
 }
 
 export function CheckoutOrderSummary({
@@ -33,6 +35,7 @@ export function CheckoutOrderSummary({
   onApplyCoupon,
   onRemoveCoupon,
   summaryLoading = false,
+  freeShippingAt,
 }: CheckoutOrderSummaryProps) {
   const [couponInput, setCouponInput] = useState('');
   const [applying, setApplying] = useState(false);
@@ -157,7 +160,11 @@ export function CheckoutOrderSummary({
           </div>
           <p className="flex items-center gap-2 text-sm font-bold text-primary mt-1">
             <span className="material-symbols-outlined text-base">local_shipping</span>
-            {shippingAmount === 'Free' ? "You've got free delivery!" : 'Free delivery on orders above ₹499'}
+            {shippingAmount === 'Free'
+              ? "You've got free delivery!"
+              : freeShippingAt
+                ? `Free delivery on orders above ₹${Math.round(freeShippingAt / 100)}`
+                : 'Free delivery on orders above ₹499'}
           </p>
         </div>
         <div className="flex justify-between items-center mt-6 pt-6 border-t-2 border-text-chocolate">

@@ -33,6 +33,10 @@ export function ProductCard({ product, onAddToCart, hoverRotate = 1 }: ProductCa
   // Local display quantity — updated instantly on every tap, no waiting for server
   const [localQty, setLocalQty] = useState(serverQty);
 
+  // Brief green flash on the stepper after first "Add to Cart" click
+  const [justAdded, setJustAdded] = useState(false);
+  const justAddedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Keep localQty in sync when server value changes (e.g. after debounce reconcile or page refocus)
   // but only when there's no pending debounce in flight
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -96,6 +100,10 @@ export function ProductCard({ product, onAddToCart, hoverRotate = 1 }: ProductCa
     // Show stepper immediately — no waiting for server
     setLocalQty(1);
     pendingQtyRef.current = 1;
+    // Flash green on the stepper to confirm
+    setJustAdded(true);
+    if (justAddedTimer.current) clearTimeout(justAddedTimer.current);
+    justAddedTimer.current = setTimeout(() => setJustAdded(false), 1200);
 
     const fire = async () => {
       try {
@@ -110,6 +118,7 @@ export function ProductCard({ product, onAddToCart, hoverRotate = 1 }: ProductCa
         // Roll back the optimistic stepper show on error
         setLocalQty(0);
         pendingQtyRef.current = null;
+        setJustAdded(false);
         refreshCart();
       } finally {
         addingFirstItemRef.current = false;
@@ -228,7 +237,7 @@ export function ProductCard({ product, onAddToCart, hoverRotate = 1 }: ProductCa
             Out of stock
           </div>
         ) : localQty > 0 ? (
-          <div className="flex items-center bg-white border-2 border-text-chocolate shadow-[3px_3px_0px_0px_#2D1B0E]">
+          <div className={`flex items-center border-2 border-text-chocolate shadow-[3px_3px_0px_0px_#2D1B0E] transition-colors duration-300 ${justAdded ? 'bg-green-100' : 'bg-white'}`}>
             <button
               type="button"
               onClick={(e) => {
@@ -241,7 +250,14 @@ export function ProductCard({ product, onAddToCart, hoverRotate = 1 }: ProductCa
               <span className="material-symbols-outlined font-bold text-lg">remove</span>
             </button>
             <span className="flex-1 text-center text-lg font-bold font-product text-text-chocolate py-2 tabular-nums">
-              {localQty}
+              {justAdded ? (
+                <span className="flex items-center justify-center gap-1">
+                  <span className="material-symbols-outlined text-green-600 text-base">check</span>
+                  <span>{localQty}</span>
+                </span>
+              ) : (
+                localQty
+              )}
             </span>
             <button
               type="button"

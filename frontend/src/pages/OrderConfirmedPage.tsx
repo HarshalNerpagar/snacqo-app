@@ -96,7 +96,7 @@ export function OrderConfirmedPage() {
 
   if (!order) {
     return (
-      <div className="flex-grow pt-32 pb-20 text-center px-6">
+      <div className="flex-grow pt-8 pb-20 text-center px-6">
         <h1 className="text-3xl font-bold text-text-chocolate mb-4">Order not found</h1>
         <Link to="/shop" className="text-primary font-bold underline">Continue shopping</Link>
       </div>
@@ -117,7 +117,7 @@ export function OrderConfirmedPage() {
   };
 
   return (
-    <div className="flex-grow pt-32 pb-20 relative overflow-hidden flex flex-col items-center justify-center">
+    <div className="flex-grow pt-8 pb-20 relative overflow-hidden flex flex-col items-center">
       <div className="absolute top-40 left-10 w-32 h-32 bg-secondary rounded-full mix-blend-multiply filter blur-2xl opacity-70 animate-float" aria-hidden />
       <div className="absolute top-20 right-20 w-48 h-48 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-60 animate-float" style={{ animationDelay: '2s' }} aria-hidden />
       <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-accent-mango/20 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-float" style={{ animationDelay: '4s' }} aria-hidden />
@@ -126,6 +126,13 @@ export function OrderConfirmedPage() {
       <span className="absolute bottom-1/3 right-[5%] z-0 rotate-45 animate-float material-symbols-outlined text-6xl text-secondary drop-shadow-[4px_4px_0px_rgba(45,27,14,1)] text-text-chocolate" style={{ fontVariationSettings: "'FILL' 1", animationDelay: '3s' }} aria-hidden>cookie</span>
 
       <div className="max-w-4xl w-full px-6 relative z-10 text-center">
+        <Link
+          to="/shop"
+          className="inline-flex items-center gap-2 text-text-chocolate/70 font-bold text-sm mb-6 hover:text-primary transition-colors"
+        >
+          <span className="material-symbols-outlined text-lg">arrow_back</span>
+          Continue shopping
+        </Link>
         <div className="mb-10 relative inline-block">
           <h1 className="product-font text-6xl md:text-8xl lg:text-9xl text-text-chocolate leading-none mb-2 whitespace-pre-line" style={{ textShadow: '6px 6px 0px #FF9F1C' }}>
             {cfg.heading}

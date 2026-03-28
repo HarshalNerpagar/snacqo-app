@@ -4,16 +4,42 @@ import { type PrismaClient } from '@prisma/client';
 import { optionalAuth } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
 
-// Tiered shipping thresholds (paise). Single source of truth — imported by orders.ts via the summary route.
-export const FREE_SHIPPING_THRESHOLD_PAISE = 49_900;  // ₹499
-export const SHIPPING_LOW_THRESHOLD_PAISE = 20_000;   // ₹200
-export const SHIPPING_BELOW_200_PAISE = 5_000;        // ₹50
-export const SHIPPING_200_TO_499_PAISE = 10_000;      // ₹100
+// Default shipping thresholds (paise) — used as fallbacks when no DB values exist.
+const DEFAULT_FREE_THRESHOLD = 49_900;  // ₹499
+const DEFAULT_LOW_THRESHOLD = 20_000;   // ₹200
+const DEFAULT_CHARGE_BELOW = 5_000;     // ₹50
+const DEFAULT_CHARGE_ABOVE = 10_000;    // ₹100
 
-export function getStandardShippingPaise(subtotalPaise: number): number {
-  if (subtotalPaise >= FREE_SHIPPING_THRESHOLD_PAISE) return 0;
-  if (subtotalPaise < SHIPPING_LOW_THRESHOLD_PAISE) return SHIPPING_BELOW_200_PAISE;
-  return SHIPPING_200_TO_499_PAISE;
+export interface ShippingConfig {
+  freeThreshold: number;
+  lowThreshold: number;
+  chargeBelow: number;
+  chargeAbove: number;
+}
+
+/** Load shipping tier config from the Setting table, falling back to defaults. */
+export async function getShippingConfig(db: PrismaClient): Promise<ShippingConfig> {
+  const rows = await db.setting.findMany({ where: { key: { startsWith: 'shipping_' } } });
+  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  return {
+    freeThreshold: parseInt(map['shipping_free_threshold'] ?? '') || DEFAULT_FREE_THRESHOLD,
+    lowThreshold: parseInt(map['shipping_low_threshold'] ?? '') || DEFAULT_LOW_THRESHOLD,
+    chargeBelow: parseInt(map['shipping_charge_below_low'] ?? '') || DEFAULT_CHARGE_BELOW,
+    chargeAbove: parseInt(map['shipping_charge_above_low'] ?? '') || DEFAULT_CHARGE_ABOVE,
+  };
+}
+
+/** Compute standard shipping from subtotal and config. */
+export function computeShipping(subtotalPaise: number, config: ShippingConfig): number {
+  if (subtotalPaise >= config.freeThreshold) return 0;
+  if (subtotalPaise < config.lowThreshold) return config.chargeBelow;
+  return config.chargeAbove;
+}
+
+// Keep the old function name as a convenience for backwards compat (reads from DB)
+export async function getStandardShippingPaise(subtotalPaise: number): Promise<number> {
+  const config = await getShippingConfig(prisma);
+  return computeShipping(subtotalPaise, config);
 }
 
 const router = Router();
@@ -269,11 +295,12 @@ router.get('/summary', async (req, res) => {
       couponMessages.push({ code, message: 'Coupon applied.', valid: true });
     }
 
-    const shippingAmount = freeShipping || isCampusOrder ? 0 : getStandardShippingPaise(subtotal);
+    const shippingConfig = await getShippingConfig(prisma);
+    const shippingAmount = freeShipping || isCampusOrder ? 0 : computeShipping(subtotal, shippingConfig);
     const total = Math.max(0, subtotal - discountAmount + shippingAmount);
 
     // Shipping tier thresholds for the frontend progress bar
-    const nextFreeShippingAt = subtotal < FREE_SHIPPING_THRESHOLD_PAISE ? FREE_SHIPPING_THRESHOLD_PAISE : null;
+    const nextFreeShippingAt = subtotal < shippingConfig.freeThreshold ? shippingConfig.freeThreshold : null;
 
     res.json({
       summary: {

@@ -9,6 +9,12 @@ import {
 } from '@/api/coupons';
 import { getCampuses, type Campus } from '@/api/campuses';
 import { getSettings, updateSettings } from '@/api/settings';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Ticket, Plus } from 'lucide-react';
 
 const IST = 'Asia/Kolkata';
 
@@ -166,7 +172,7 @@ export function CouponsPage() {
         ? (Number.isNaN(valueNum) ? 0 : Math.min(100, Math.max(0, valueNum)))
         : Math.round((Number.isFinite(valueNum) ? valueNum : 0) * 100);
       if (type === 'PERCENT' ? (Number.isNaN(valueNum) || valueNum < 0 || valueNum > 100) : valuePaise < 0) {
-        setCreateError(type === 'PERCENT' ? 'Percent (0–100) is required.' : 'Value (₹) is required.');
+        setCreateError(type === 'PERCENT' ? 'Percent (0-100) is required.' : 'Value (Rs) is required.');
         return;
       }
     }
@@ -228,7 +234,7 @@ export function CouponsPage() {
         ? (Number.isNaN(valueNum) ? 0 : Math.min(100, Math.max(0, valueNum)))
         : Math.round((Number.isFinite(valueNum) ? valueNum : 0) * 100);
       if (editType === 'PERCENT' ? (Number.isNaN(valueNum) || valueNum < 0 || valueNum > 100) : valuePaise < 0) {
-        setEditError(editType === 'PERCENT' ? 'Percent (0–100) required.' : 'Value (₹) required.');
+        setEditError(editType === 'PERCENT' ? 'Percent (0-100) required.' : 'Value (Rs) required.');
         return;
       }
     }
@@ -285,259 +291,345 @@ export function CouponsPage() {
   const formatValue = (c: Coupon) =>
     c.type === 'FREE_SHIPPING' ? 'Free shipping' : c.type === 'PERCENT' ? `${c.value}%` : `₹${(c.value / 100).toFixed(2)}`;
 
+  const typeBadgeVariant = (t: CouponType) => {
+    if (t === 'PERCENT') return 'purple' as const;
+    if (t === 'FIXED') return 'info' as const;
+    return 'warning' as const;
+  };
+
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Coupons</h1>
-        <button
-          type="button"
-          onClick={() => { resetCreateForm(); setCreateOpen(true); }}
-          className="px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white hover:bg-slate-700"
-        >
+        <div className="flex items-center gap-3">
+          <Ticket className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-bold text-foreground">Coupons</h1>
+        </div>
+        <Button onClick={() => { resetCreateForm(); setCreateOpen(true); }}>
+          <Plus className="h-4 w-4 mr-1" />
           Create coupon
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
-        <h2 className="text-sm font-semibold text-slate-700 mb-3">Coupon settings</h2>
-        {settingsLoading ? (
-          <span className="text-slate-500 text-sm">Loading…</span>
-        ) : (
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={allowMultipleCoupons}
-              onChange={(e) => handleAllowMultipleCouponsChange(e.target.checked)}
-              disabled={settingsSaving}
-              className="w-4 h-4 rounded border-slate-300 text-slate-800 focus:ring-slate-500"
-            />
-            <span className="text-sm text-slate-700">Allow customers to use multiple coupon codes per order</span>
-            {settingsSaving && <span className="text-slate-400 text-xs">Saving…</span>}
-          </label>
-        )}
-      </div>
-
-      {loading ? (
-        <div className="text-slate-500 py-8">Loading…</div>
-      ) : (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Code</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Value</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valid from (IST)</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valid to (IST)</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Used</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Max uses</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Active</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {coupons.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm font-medium text-slate-800 font-mono">{c.code}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{c.type}</td>
-                  <td className="px-4 py-3 text-sm text-slate-800 text-right">{formatValue(c)}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{formatDateTimeIST(c.validFrom)}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{formatDateTimeIST(c.validTo)}</td>
-                  <td className="px-4 py-3 text-sm text-slate-800 text-right">{c.usedCount}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 text-right">{c.maxUses ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${c.isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
-                      {c.isActive ? 'Yes' : 'No'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button type="button" onClick={() => openEdit(c)} className="text-sm font-medium text-slate-600 hover:text-slate-900 mr-2">Edit</button>
-                    {c.isActive && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeactivate(c.id)}
-                        disabled={deactivateId === c.id}
-                        className="text-sm font-medium text-amber-600 hover:text-amber-800 mr-2 disabled:opacity-50"
-                      >
-                        {deactivateId === c.id ? '…' : 'Deactivate'}
-                      </button>
-                    )}
-                    <button type="button" onClick={() => openHardDelete(c)} className="text-sm font-medium text-red-600 hover:text-red-800">Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {coupons.length === 0 && (
-            <div className="px-4 py-8 text-center text-slate-500 text-sm">No coupons yet.</div>
+      {/* Coupon settings */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm">Coupon settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {settingsLoading ? (
+            <Skeleton className="h-5 w-64" />
+          ) : (
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div className="relative inline-flex items-center">
+                <input
+                  type="checkbox"
+                  checked={allowMultipleCoupons}
+                  onChange={(e) => handleAllowMultipleCouponsChange(e.target.checked)}
+                  disabled={settingsSaving}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+              </div>
+              <span className="text-sm text-muted-foreground">Allow customers to use multiple coupon codes per order</span>
+              {settingsSaving && <span className="text-xs text-muted-foreground">Saving...</span>}
+            </label>
           )}
-        </div>
+        </CardContent>
+      </Card>
+
+      {/* Coupons table */}
+      {loading ? (
+        <Card>
+          <CardContent className="p-6 space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-10" />
+                <Skeleton className="h-5 w-12 rounded-full" />
+                <Skeleton className="h-4 w-24 ml-auto" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Code</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Value</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Valid from (IST)</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Valid to (IST)</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Used</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Max uses</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Active</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {coupons.map((c) => (
+                  <tr key={c.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-foreground font-mono">{c.code}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={typeBadgeVariant(c.type)}>{c.type}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-foreground text-right">{formatValue(c)}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{formatDateTimeIST(c.validFrom)}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{formatDateTimeIST(c.validTo)}</td>
+                    <td className="px-4 py-3 text-sm text-foreground text-right">{c.usedCount}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground text-right">{c.maxUses ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={c.isActive ? 'success' : 'secondary'}>
+                        {c.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(c)}>Edit</Button>
+                      {c.isActive && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-amber-600 hover:text-amber-800"
+                          onClick={() => handleDeactivate(c.id)}
+                          disabled={deactivateId === c.id}
+                        >
+                          {deactivateId === c.id ? '...' : 'Deactivate'}
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => openHardDelete(c)}
+                      >
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {coupons.length === 0 && (
+              <div className="px-4 py-8 text-center text-muted-foreground text-sm">No coupons yet.</div>
+            )}
+          </div>
+        </Card>
       )}
 
       {/* Create modal */}
       {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !creating && resetCreateForm()}>
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Create coupon</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              {createError && <p className="text-sm text-red-600">{createError}</p>}
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Code *</span>
-                <input type="text" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" placeholder="SAVE10" />
-              </label>
-              <div className="grid grid-cols-2 gap-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle>Create coupon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreate} className="space-y-4">
+                {createError && <p className="text-sm text-destructive">{createError}</p>}
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">Type</span>
-                  <select value={type} onChange={(e) => setType(e.target.value as CouponType)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-                    <option value="PERCENT">Percent</option>
-                    <option value="FIXED">Fixed (₹)</option>
-                    <option value="FREE_SHIPPING">Free shipping</option>
-                  </select>
+                  <span className="text-sm font-medium text-muted-foreground">Code *</span>
+                  <Input type="text" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required className="mt-1 font-mono" placeholder="SAVE10" />
                 </label>
-                {type !== 'FREE_SHIPPING' && (
+                <div className="grid grid-cols-2 gap-4">
                   <label className="block">
-                    <span className="text-sm font-medium text-slate-600">Value *</span>
-                    <input type="number" min={0} max={type === 'PERCENT' ? 100 : undefined} step={type === 'PERCENT' ? 1 : 0.01} value={value} onChange={(e) => setValue(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder={type === 'PERCENT' ? '10' : '50.00'} />
+                    <span className="text-sm font-medium text-muted-foreground">Type</span>
+                    <select value={type} onChange={(e) => setType(e.target.value as CouponType)} className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                      <option value="PERCENT">Percent</option>
+                      <option value="FIXED">Fixed (Rs)</option>
+                      <option value="FREE_SHIPPING">Free shipping</option>
+                    </select>
+                  </label>
+                  {type !== 'FREE_SHIPPING' && (
+                    <label className="block">
+                      <span className="text-sm font-medium text-muted-foreground">Value *</span>
+                      <Input type="number" min={0} max={type === 'PERCENT' ? 100 : undefined} step={type === 'PERCENT' ? 1 : 0.01} value={value} onChange={(e) => setValue(e.target.value)} className="mt-1" placeholder={type === 'PERCENT' ? '10' : '50.00'} />
+                    </label>
+                  )}
+                </div>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Min order (Rs, optional)</span>
+                  <Input type="number" min={0} step="0.01" value={minOrderAmount} onChange={(e) => setMinOrderAmount(e.target.value)} className="mt-1" placeholder="--" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Max uses (optional)</span>
+                  <Input type="number" min={0} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className="mt-1" placeholder="--" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Valid from * (IST)</span>
+                  <Input type="datetime-local" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} required className="mt-1" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Valid to * (IST)</span>
+                  <Input type="datetime-local" value={validTo} onChange={(e) => setValidTo(e.target.value)} required className="mt-1" />
+                </label>
+                {/* Campus only toggle */}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={campusOnly}
+                      onChange={(e) => setCampusOnly(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground">Campus only (valid only for campus delivery orders)</span>
+                </label>
+                {campusOnly && campuses.length > 0 && (
+                  <label className="block">
+                    <span className="text-sm font-medium text-muted-foreground">Allowed campuses (leave empty = any campus)</span>
+                    <select
+                      multiple
+                      value={allowedCampusIds}
+                      onChange={(e) => setAllowedCampusIds(Array.from(e.target.selectedOptions, (o) => o.value))}
+                      className="mt-1 flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[80px]"
+                    >
+                      {campuses.map((cam) => (
+                        <option key={cam.id} value={cam.id}>{cam.name}</option>
+                      ))}
+                    </select>
                   </label>
                 )}
-              </div>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Min order (₹, optional)</span>
-                <input type="number" min={0} step="0.01" value={minOrderAmount} onChange={(e) => setMinOrderAmount(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="—" />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Max uses (optional)</span>
-                <input type="number" min={0} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="—" />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Valid from * (IST)</span>
-                <input type="datetime-local" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Valid to * (IST)</span>
-                <input type="datetime-local" value={validTo} onChange={(e) => setValidTo(e.target.value)} required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={campusOnly} onChange={(e) => setCampusOnly(e.target.checked)} className="rounded border-slate-300" />
-                <span className="text-sm font-medium text-slate-600">Campus only (valid only for campus delivery orders)</span>
-              </label>
-              {campusOnly && campuses.length > 0 && (
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-600">Allowed campuses (leave empty = any campus)</span>
-                  <select
-                    multiple
-                    value={allowedCampusIds}
-                    onChange={(e) => setAllowedCampusIds(Array.from(e.target.selectedOptions, (o) => o.value))}
-                    className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm min-h-[80px]"
-                  >
-                    {campuses.map((cam) => (
-                      <option key={cam.id} value={cam.id}>{cam.name}</option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={resetCreateForm} disabled={creating} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
-                <button type="submit" disabled={creating} className="px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50">{creating ? 'Creating…' : 'Create'}</button>
-              </div>
-            </form>
-          </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={resetCreateForm} disabled={creating}>Cancel</Button>
+                  <Button type="submit" disabled={creating}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    {creating ? 'Creating...' : 'Create'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Edit modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !updating && setEditing(null)}>
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Edit coupon</h2>
-            <form onSubmit={handleUpdate} className="space-y-4">
-              {editError && <p className="text-sm text-red-600">{editError}</p>}
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Code *</span>
-                <input type="text" value={editCode} onChange={(e) => setEditCode(e.target.value.toUpperCase())} required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" />
-              </label>
-              <div className="grid grid-cols-2 gap-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle>Edit coupon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdate} className="space-y-4">
+                {editError && <p className="text-sm text-destructive">{editError}</p>}
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">Type</span>
-                  <select value={editType} onChange={(e) => setEditType(e.target.value as CouponType)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-                    <option value="PERCENT">Percent</option>
-                    <option value="FIXED">Fixed (₹)</option>
-                    <option value="FREE_SHIPPING">Free shipping</option>
-                  </select>
+                  <span className="text-sm font-medium text-muted-foreground">Code *</span>
+                  <Input type="text" value={editCode} onChange={(e) => setEditCode(e.target.value.toUpperCase())} required className="mt-1 font-mono" />
                 </label>
-                {editType !== 'FREE_SHIPPING' && (
+                <div className="grid grid-cols-2 gap-4">
                   <label className="block">
-                    <span className="text-sm font-medium text-slate-600">Value *</span>
-                    <input type="number" min={0} max={editType === 'PERCENT' ? 100 : undefined} step={editType === 'PERCENT' ? 1 : 0.01} value={editValue} onChange={(e) => setEditValue(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder={editType === 'PERCENT' ? '10' : '50.00'} />
+                    <span className="text-sm font-medium text-muted-foreground">Type</span>
+                    <select value={editType} onChange={(e) => setEditType(e.target.value as CouponType)} className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                      <option value="PERCENT">Percent</option>
+                      <option value="FIXED">Fixed (Rs)</option>
+                      <option value="FREE_SHIPPING">Free shipping</option>
+                    </select>
+                  </label>
+                  {editType !== 'FREE_SHIPPING' && (
+                    <label className="block">
+                      <span className="text-sm font-medium text-muted-foreground">Value *</span>
+                      <Input type="number" min={0} max={editType === 'PERCENT' ? 100 : undefined} step={editType === 'PERCENT' ? 1 : 0.01} value={editValue} onChange={(e) => setEditValue(e.target.value)} className="mt-1" placeholder={editType === 'PERCENT' ? '10' : '50.00'} />
+                    </label>
+                  )}
+                </div>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Min order (Rs)</span>
+                  <Input type="number" min={0} step="0.01" value={editMinOrderAmount} onChange={(e) => setEditMinOrderAmount(e.target.value)} className="mt-1" placeholder="--" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Max uses</span>
+                  <Input type="number" min={0} value={editMaxUses} onChange={(e) => setEditMaxUses(e.target.value)} className="mt-1" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Valid from (IST)</span>
+                  <Input type="datetime-local" value={editValidFrom} onChange={(e) => setEditValidFrom(e.target.value)} className="mt-1" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-muted-foreground">Valid to (IST)</span>
+                  <Input type="datetime-local" value={editValidTo} onChange={(e) => setEditValidTo(e.target.value)} className="mt-1" />
+                </label>
+                {/* Active toggle */}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editIsActive}
+                      onChange={(e) => setEditIsActive(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </div>
+                  <span className="text-sm text-muted-foreground">Active</span>
+                </label>
+                {/* Campus only toggle */}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editCampusOnly}
+                      onChange={(e) => setEditCampusOnly(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
+                  </div>
+                  <span className="text-sm text-muted-foreground">Campus only (valid only for campus delivery orders)</span>
+                </label>
+                {editCampusOnly && campuses.length > 0 && (
+                  <label className="block">
+                    <span className="text-sm font-medium text-muted-foreground">Allowed campuses (empty = any campus)</span>
+                    <select
+                      multiple
+                      value={editAllowedCampusIds}
+                      onChange={(e) => setEditAllowedCampusIds(Array.from(e.target.selectedOptions, (o) => o.value))}
+                      className="mt-1 flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[80px]"
+                    >
+                      {campuses.map((cam) => (
+                        <option key={cam.id} value={cam.id}>{cam.name}</option>
+                      ))}
+                    </select>
                   </label>
                 )}
-              </div>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Min order (₹)</span>
-                <input type="number" min={0} step="0.01" value={editMinOrderAmount} onChange={(e) => setEditMinOrderAmount(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="—" />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Max uses</span>
-                <input type="number" min={0} value={editMaxUses} onChange={(e) => setEditMaxUses(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Valid from (IST)</span>
-                <input type="datetime-local" value={editValidFrom} onChange={(e) => setEditValidFrom(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-600">Valid to (IST)</span>
-                <input type="datetime-local" value={editValidTo} onChange={(e) => setEditValidTo(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={editIsActive} onChange={(e) => setEditIsActive(e.target.checked)} className="rounded border-slate-300" />
-                <span className="text-sm text-slate-600">Active</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={editCampusOnly} onChange={(e) => setEditCampusOnly(e.target.checked)} className="rounded border-slate-300" />
-                <span className="text-sm text-slate-600">Campus only (valid only for campus delivery orders)</span>
-              </label>
-              {editCampusOnly && campuses.length > 0 && (
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-600">Allowed campuses (empty = any campus)</span>
-                  <select
-                    multiple
-                    value={editAllowedCampusIds}
-                    onChange={(e) => setEditAllowedCampusIds(Array.from(e.target.selectedOptions, (o) => o.value))}
-                    className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm min-h-[80px]"
-                  >
-                    {campuses.map((cam) => (
-                      <option key={cam.id} value={cam.id}>{cam.name}</option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setEditing(null)} disabled={updating} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
-                <button type="submit" disabled={updating} className="px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50">{updating ? 'Saving…' : 'Save'}</button>
-              </div>
-            </form>
-          </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setEditing(null)} disabled={updating}>Cancel</Button>
+                  <Button type="submit" disabled={updating}>{updating ? 'Saving...' : 'Save'}</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Hard delete confirm */}
       {hardDeleteCoupon && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !deleteInProgress && setHardDeleteCoupon(null)}>
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-slate-800 mb-2">Permanently delete?</h2>
-            <p className="text-sm text-slate-600 mb-4">Coupon &quot;{hardDeleteCoupon.code}&quot; will be removed. This cannot be undone.</p>
-            {deleteError && <p className="text-sm text-red-600 mb-4">{deleteError}</p>}
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setHardDeleteCoupon(null)} disabled={deleteInProgress} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
-              <button type="button" onClick={handleHardDelete} disabled={deleteInProgress} className="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">{deleteInProgress ? 'Deleting…' : 'Delete permanently'}</button>
-            </div>
-          </div>
+          <Card className="w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle>Permanently delete?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Coupon &quot;{hardDeleteCoupon.code}&quot; will be removed. This cannot be undone.</p>
+              {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setHardDeleteCoupon(null)} disabled={deleteInProgress}>Cancel</Button>
+                <Button type="button" variant="destructive" onClick={handleHardDelete} disabled={deleteInProgress}>
+                  {deleteInProgress ? 'Deleting...' : 'Delete permanently'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

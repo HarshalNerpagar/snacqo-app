@@ -1,10 +1,11 @@
-import { Router, type Response } from 'express';
+import { Router, type Response, type Request } from 'express';
 import * as bcrypt from 'bcrypt';
 import { config } from '../config.js';
 import { createAndSendOtp, verifyOtp } from '../services/otp.js';
 import { sendOtpEmail } from '../services/email.js';
 import { signToken } from '../lib/jwt.js';
 import { requireAuth } from '../middleware/auth.js';
+import { findCart } from './cart.js';
 import prisma from '../lib/prisma.js';
 
 const router = Router();
@@ -207,9 +208,13 @@ router.post('/verify-otp', async (req, res) => {
       userName,
     });
     setTokenCookie(res, token);
-    // Clear the guest cart_session cookie — the JWT now owns identity.
-    // This prevents the stale session cookie from being reused as a new guest
-    // session on shared devices or after the user logs out.
+    // Merge the guest cart into the user's cart BEFORE clearing the session cookie.
+    // findCart triggers the merge when it sees both userId and sessionId.
+    const cartSessionId = (req.cookies as Record<string, string>)?.[CART_COOKIE] ?? null;
+    if (cartSessionId) {
+      try { await findCart(prisma, user.id, cartSessionId); } catch { /* non-fatal */ }
+    }
+    // Now safe to clear — the merge is done server-side.
     clearCartSessionCookie(res);
     res.json({ user: sanitizeUser(user) });
   } catch (e) {

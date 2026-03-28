@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getProfile, updateProfile } from '@/api/users';
+import { queryKeys } from '@/lib/queryClient';
 
 const initialForm = {
   firstName: '',
@@ -13,36 +15,34 @@ const initialForm = {
 
 export function AccountProfilePage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [form, setForm] = useState(initialForm);
-  const [loading, setLoading] = useState(true);
+  const [formInitialized, setFormInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  const { data: profileData, isLoading: loading } = useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: () => getProfile(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Populate form from query data (once)
   useEffect(() => {
-    let cancelled = false;
-    getProfile()
-      .then(({ user }) => {
-        if (cancelled) return;
-        setForm({
-          firstName: user.firstName ?? '',
-          lastName: user.lastName ?? '',
-          birthday: user.birthday ?? '',
-          email: user.email,
-          phone: user.phone ?? '',
-          newsletter: user.newsletter,
-        });
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load profile.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+    if (profileData?.user && !formInitialized) {
+      const user = profileData.user;
+      setForm({
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        birthday: user.birthday ?? '',
+        email: user.email,
+        phone: user.phone ?? '',
+        newsletter: user.newsletter,
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      setFormInitialized(true);
+    }
+  }, [profileData, formInitialized]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSuccess(false);
@@ -67,6 +67,7 @@ export function AccountProfilePage() {
         birthday: form.birthday || null,
         newsletter: form.newsletter,
       });
+      qc.invalidateQueries({ queryKey: queryKeys.profile });
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save.');

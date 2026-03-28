@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AddressCard } from '@/components/account/AddressCard';
 import type { SavedAddress } from '@/types/account';
 import { listAddresses, createAddress, updateAddress, deleteAddress, toSavedAddress } from '@/api/addresses';
+import { queryKeys } from '@/lib/queryClient';
 
 const SHADOWS: ('secondary' | 'text-chocolate' | 'accent-strawberry')[] = [
   'secondary',
@@ -23,24 +25,23 @@ const emptyForm = {
 };
 
 export function SavedAddressesPage() {
-  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  const fetchAddresses = useCallback(() => {
-    listAddresses()
-      .then(({ addresses: list }) => setAddresses(list.map(toSavedAddress)))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load addresses.'))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: addressesData, isLoading: loading } = useQuery({
+    queryKey: queryKeys.addresses,
+    queryFn: () => listAddresses(),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchAddresses();
-  }, [fetchAddresses]);
+  const addresses = useMemo<SavedAddress[]>(
+    () => (addressesData?.addresses ?? []).map(toSavedAddress),
+    [addressesData]
+  );
 
   const handleEdit = (id: string) => {
     const a = addresses.find((x) => x.id === id);
@@ -71,7 +72,7 @@ export function SavedAddressesPage() {
     if (a?.isDefault) return;
     try {
       await deleteAddress(id);
-      setAddresses((prev) => prev.filter((x) => x.id !== id));
+      qc.invalidateQueries({ queryKey: queryKeys.addresses });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete.');
     }
@@ -83,7 +84,7 @@ export function SavedAddressesPage() {
     setSaving(true);
     try {
       if (editingId) {
-        const { address } = await updateAddress(editingId, {
+        await updateAddress(editingId, {
           label: form.label,
           name: form.name,
           phone: form.phone,
@@ -94,9 +95,8 @@ export function SavedAddressesPage() {
           pincode: form.pincode,
           isDefault: form.isDefault,
         });
-        setAddresses((prev) => prev.map((a) => (a.id === editingId ? toSavedAddress(address) : a)));
       } else {
-        const { address } = await createAddress({
+        await createAddress({
           label: form.label,
           name: form.name,
           phone: form.phone,
@@ -107,8 +107,8 @@ export function SavedAddressesPage() {
           pincode: form.pincode,
           isDefault: form.isDefault,
         });
-        setAddresses((prev) => [...prev, toSavedAddress(address)]);
       }
+      qc.invalidateQueries({ queryKey: queryKeys.addresses });
       setModalOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save address.');

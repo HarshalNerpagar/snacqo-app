@@ -1,4 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ProductCard } from '@/components/ProductCard';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import type { Product } from '@/types/product';
@@ -6,6 +7,7 @@ import { getCategories } from '@/api/categories';
 import { getProducts, formatPrice, type ProductResponse } from '@/api/products';
 import { addCartItem, type CartItemResponse } from '@/api/cart';
 import { useCart } from '@/contexts/useCart';
+import { queryKeys } from '@/lib/queryClient';
 
 function mapProduct(p: ProductResponse): Product {
   const sortedImages = [...(p.images ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -40,36 +42,38 @@ function mapProduct(p: ProductResponse): Product {
 }
 
 export function ProductsPage() {
-  const [categories, setCategories] = useState<{ id: string; label: string }[]>([
-    { id: 'all', label: 'ALL' },
-  ]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const { applyCartResponse } = useCart();
 
-  useEffect(() => {
-    getCategories()
-      .then(({ categories: list }) => {
-        setCategories([
-          { id: 'all', label: 'ALL' },
-          ...list.map((c) => ({ id: c.slug, label: c.name.toUpperCase() })),
-        ]);
-      })
-      .catch(() => {});
-  }, []);
+  const { data: categoriesData } = useQuery({
+    queryKey: queryKeys.categories,
+    queryFn: () => getCategories(),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    setLoading(true);
-    getProducts({
-      category: activeCategory === 'all' ? undefined : activeCategory,
-    })
-      .then(({ products: list }) => setProducts(list.map(mapProduct)))
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
-  }, [activeCategory]);
+  const categories = useMemo(() => [
+    { id: 'all', label: 'ALL' },
+    ...(categoriesData?.categories ?? []).map((c) => ({ id: c.slug, label: c.name.toUpperCase() })),
+  ], [categoriesData]);
 
-  const filteredProducts = useMemo(() => products, [products]);
+  // Fetch ALL products once — category filtering happens client-side for instant tab switching
+  const { data: productsData, isLoading: loading } = useQuery({
+    queryKey: queryKeys.products(),
+    queryFn: () => getProducts(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const allProducts = useMemo(
+    () => (productsData?.products ?? []).map(mapProduct),
+    [productsData]
+  );
+
+  const products = useMemo(
+    () => activeCategory === 'all'
+      ? allProducts
+      : allProducts.filter((p) => p.category === activeCategory),
+    [allProducts, activeCategory]
+  );
 
   const handleAddToCart = async (product: Product, variantId?: string): Promise<CartItemResponse[] | void> => {
     const id = variantId ?? product.defaultVariantId;
@@ -108,7 +112,7 @@ export function ProductsPage() {
         </div>
       ) : (
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8 items-stretch relative z-10">
-          {filteredProducts.map((product, index) => (
+          {products.map((product, index) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -118,7 +122,7 @@ export function ProductsPage() {
           ))}
         </div>
       )}
-      {!loading && filteredProducts.length === 0 && (
+      {!loading && products.length === 0 && (
         <p className="max-w-7xl mx-auto px-6 text-center text-text-chocolate/80 font-bold py-12">
           No products in this category yet.
         </p>

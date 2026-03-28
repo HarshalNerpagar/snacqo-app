@@ -7,6 +7,8 @@ import couponsRouter from './coupons.js';
 import campusesRouter from './campuses.js';
 import dashboardRouter from './dashboard.js';
 import settingsRouter from './settings.js';
+import customersRouter from './customers.js';
+import reviewsRouter from './reviews.js';
 
 const router = Router();
 
@@ -20,5 +22,7 @@ router.use('/coupons', couponsRouter);
 router.use('/campuses', campusesRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/settings', settingsRouter);
+router.use('/customers', customersRouter);
+router.use('/reviews', reviewsRouter);
 
 export default router;

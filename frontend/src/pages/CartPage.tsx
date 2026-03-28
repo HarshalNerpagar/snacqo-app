@@ -1,14 +1,17 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { CartItemCard } from '@/components/cart/CartItemCard';
 import { CartOrderSummary } from '@/components/cart/CartOrderSummary';
 import {
   getCart,
+  getCartSummary,
   updateCartItemQuantity,
   removeCartItem,
   type CartItemResponse,
 } from '@/api/cart';
 import { useCart } from '@/contexts/useCart';
+import { queryKeys } from '@/lib/queryClient';
 import type { CartItem, CartSummary } from '@/types/cart';
 
 const DEBOUNCE_MS = 400;
@@ -35,7 +38,6 @@ function mapCartItem(item: CartItemResponse): CartItem {
 
 export function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [summaryInView, setSummaryInView] = useState(false);
   const [scrolledPastSummary, setScrolledPastSummary] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -44,6 +46,33 @@ export function CartPage() {
   // Per-item debounce timers and pending quantities
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingQtys = useRef<Record<string, number>>({});
+  // Track item IDs that are being removed (API in-flight) to prevent flash-back
+  const removingIds = useRef<Set<string>>(new Set());
+
+  // Cart is always revalidated in background but cached data shows instantly
+  const { isLoading: loading } = useQuery({
+    queryKey: queryKeys.cart,
+    queryFn: () => getCart(),
+    staleTime: 0,
+    select: ({ cart }) => (cart?.items ?? []) as CartItemResponse[],
+    placeholderData: (prev) => prev,
+  });
+
+  // Sync query data into local items state (only when no pending debounce)
+  const { data: queryCartItems } = useQuery({
+    queryKey: queryKeys.cart,
+    queryFn: () => getCart(),
+    staleTime: 0,
+    select: ({ cart }) => (cart?.items ?? []) as CartItemResponse[],
+  });
+
+  useEffect(() => {
+    // Don't overwrite local state while user is actively changing quantities or removing items
+    const hasPending = Object.keys(debounceTimers.current).length > 0 || removingIds.current.size > 0;
+    if (!hasPending && queryCartItems) {
+      setItems(queryCartItems.map(mapCartItem));
+    }
+  }, [queryCartItems]);
 
   // Clean up all timers on unmount
   useEffect(() => () => {
@@ -69,14 +98,13 @@ export function CartPage() {
     return () => observer.disconnect();
   }, [items.length]);
 
-  useEffect(() => {
-    getCart()
-      .then(({ cart }) => {
-        setItems((cart?.items ?? []).map(mapCartItem));
-      })
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, []);
+  // Fetch server summary for the free shipping threshold
+  const { data: serverSummary } = useQuery({
+    queryKey: [...queryKeys.cart, 'summary'],
+    queryFn: () => getCartSummary(),
+    staleTime: 0,
+    enabled: items.length > 0,
+  });
 
   const summary: CartSummary = useMemo(() => {
     let subtotalPaise = 0;
@@ -147,19 +175,23 @@ export function CartPage() {
         delete debounceTimers.current[id];
       }
       delete pendingQtys.current[id];
+      // Mark as removing so the query sync effect doesn't flash it back
+      removingIds.current.add(id);
       // Instantly remove from view
       setItems((prev) => prev.filter((i) => i.id !== id));
       // Fire remove immediately (no debounce needed — explicit user action)
       removeCartItem(item.variantId)
         .then(({ cart }) => {
+          // Only update the cart context (header badge) — don't overwrite local items
+          // because other removals may still be in-flight
           applyCartResponse(cart.items as CartItemResponse[]);
-          setItems((cart.items as CartItemResponse[]).map(mapCartItem));
         })
         .catch(() => {
-          getCart().then(({ cart }) => {
-            setItems((cart?.items ?? []).map(mapCartItem));
-            applyCartResponse((cart?.items ?? []) as CartItemResponse[]);
-          });
+          // On error, let the query sync effect restore the correct state
+        })
+        .finally(() => {
+          removingIds.current.delete(id);
+          // If no more removals in-flight, let the next query sync pick up the truth
         });
     },
     [items, applyCartResponse]
@@ -232,7 +264,7 @@ export function CartPage() {
         </div>
         {items.length > 0 && (
           <div ref={summaryRef} className="w-full lg:w-1/3 lg:min-w-[360px] lg:flex-shrink-0 relative z-20 lg:z-20">
-            <CartOrderSummary summary={summary} />
+            <CartOrderSummary summary={summary} freeShippingAt={serverSummary?.summary?.nextFreeShippingAt} />
           </div>
         )}
       </div>

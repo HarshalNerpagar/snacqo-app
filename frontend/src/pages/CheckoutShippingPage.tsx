@@ -53,6 +53,7 @@ function CampusDeliveryForm({
   onSubmit,
   isSubmitting,
   canSubmit,
+  lockEmail = false,
 }: {
   initialEmail: string;
   initialFirstName?: string;
@@ -61,6 +62,8 @@ function CampusDeliveryForm({
   onSubmit: (data: ShippingFormData) => void;
   isSubmitting: boolean;
   canSubmit: boolean;
+  /** When true, the email field is read-only (logged-in user). */
+  lockEmail?: boolean;
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [firstName, setFirstName] = useState(initialFirstName ?? '');
@@ -101,9 +104,10 @@ function CampusDeliveryForm({
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => !lockEmail && setEmail(e.target.value)}
+          readOnly={lockEmail}
           required
-          className="w-full rounded-md border-2 border-text-chocolate px-3 py-2 font-bold text-text-chocolate"
+          className={`w-full rounded-md border-2 border-text-chocolate px-3 py-2 font-bold text-text-chocolate ${lockEmail ? 'bg-gray-100 cursor-not-allowed' : ''}`}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -206,8 +210,15 @@ export function CheckoutShippingPage() {
     }
   }, []);
 
-  // Initial load: cart items + addresses + settings + campuses
+  // Initial load: cart items + addresses + settings + campuses + pre-load Razorpay
+  const initialLoadDone = useRef(false);
   useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
+    // Pre-load Razorpay SDK so it's ready when the user clicks "pay"
+    loadRazorpayScript().catch(() => { /* will retry in proceedToPayment */ });
+
     const cartReq = getCart()
       .then(({ cart }) => {
         const list = (cart?.items ?? []) as CartItemResponse[];
@@ -244,21 +255,12 @@ export function CheckoutShippingPage() {
     Promise.all([cartReq, addrReq, settingsReq, campusesReq, summaryReq]).finally(() => setLoading(false));
   }, [isLoggedIn, fetchSummary]);
 
-  // When the user logs in via OTP on this page, refresh both the cart context (so the
-  // header count is correct) and the price summary (so the merged cart's total is shown).
-  // Also reset applied coupons — they were validated against the pre-login subtotal and
-  // must be re-validated against the merged cart.
+  // Track login transition — coupon handling is done in handleEmailVerified,
+  // not here, to avoid race conditions that clear coupons before proceedToPayment reads them.
   const prevIsLoggedIn = useRef(isLoggedIn);
   useEffect(() => {
-    if (!prevIsLoggedIn.current && isLoggedIn) {
-      // Auth state changed: guest → logged in
-      refreshCart();
-      setAppliedCoupons([]);
-      setCouponMessage('Your cart was updated after login. Please re-apply any coupon.');
-      fetchSummary([], isCampusDelivery, selectedCampusId);
-    }
     prevIsLoggedIn.current = isLoggedIn;
-  }, [isLoggedIn, refreshCart, fetchSummary, isCampusDelivery, selectedCampusId]);
+  }, [isLoggedIn]);
 
   // Re-fetch summary whenever delivery type or campus changes (shipping amount may change)
   useEffect(() => {
@@ -384,6 +386,13 @@ export function CheckoutShippingPage() {
     }
 
     try {
+      // Load Razorpay SDK first — if this fails, no order is created and cart stays intact
+      await loadRazorpayScript();
+      if (!window.Razorpay) {
+        throw new Error('Payment system unavailable. Please refresh the page and try again.');
+      }
+      const RazorpayConstructor = window.Razorpay;
+
       const orderPayload = isCampus
         ? {
             email: data.email.trim().toLowerCase(),
@@ -441,9 +450,6 @@ export function CheckoutShippingPage() {
         return;
       }
 
-      await loadRazorpayScript();
-      const Razorpay = window.Razorpay!;
-
       const handleCancel = async (reason: 'cancelled' | 'failed') => {
         try {
           await cancelOrder(orderId);
@@ -459,7 +465,7 @@ export function CheckoutShippingPage() {
         }
       };
 
-      const rzp = new Razorpay({
+      const rzp = new RazorpayConstructor({
         key: paymentConfig.key,
         amount: paymentConfig.amount,   // Always from the backend — never from local state
         currency: paymentConfig.currency,
@@ -498,8 +504,16 @@ export function CheckoutShippingPage() {
     if (!pendingFormData) return;
     setVerified(pendingFormData.email);
     setShowEmailModal(false);
-    // Refresh cart context so header count reflects the post-login merged cart
+    // Refresh cart context (header count) and local checkout items after merge
     await refreshCart();
+    try {
+      const { cart } = await getCart();
+      const list = (cart?.items ?? []) as CartItemResponse[];
+      setItems(list.map(mapToCheckoutItem));
+    } catch { /* non-fatal: order uses server-side cart state */ }
+    // Re-validate existing coupons against the merged cart (don't drop them)
+    const couponCodes = appliedCoupons.map((c) => c.code);
+    await fetchSummary(couponCodes, isCampusDelivery, selectedCampusId);
     proceedToPayment(pendingFormData, pendingCampusOptions ?? undefined);
     setPendingFormData(null);
     setPendingCampusOptions(null);
@@ -609,14 +623,17 @@ export function CheckoutShippingPage() {
               </div>
               <CampusDeliveryForm
                 initialEmail={user?.email ?? ''}
+                lockEmail={isLoggedIn}
                 initialFirstName={isLoggedIn && savedAddresses.length > 0 ? nameToFirstLast((savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0]).name).first : undefined}
                 initialLastName={isLoggedIn && savedAddresses.length > 0 ? nameToFirstLast((savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0]).name).last : undefined}
                 initialPhone={isLoggedIn && savedAddresses.length > 0 ? (savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0]).phone : undefined}
                 onSubmit={(data) => {
-                  if (isLoggedIn || isVerifiedFor(data.email)) {
-                    proceedToPayment(data, { isCampus: true, campusId: selectedCampusId });
+                  // For logged-in users, always use account email regardless of form value
+                  const safeData = isLoggedIn && user?.email ? { ...data, email: user.email } : data;
+                  if (isLoggedIn || isVerifiedFor(safeData.email)) {
+                    proceedToPayment(safeData, { isCampus: true, campusId: selectedCampusId });
                   } else {
-                    setPendingFormData(data);
+                    setPendingFormData(safeData);
                     setPendingCampusOptions({ isCampus: true, campusId: selectedCampusId });
                     setShowEmailModal(true);
                   }
@@ -666,6 +683,7 @@ export function CheckoutShippingPage() {
             onApplyCoupon={handleApplyCoupon}
             onRemoveCoupon={handleRemoveCoupon}
             summaryLoading={summaryLoading}
+            freeShippingAt={priceSummary?.nextFreeShippingAt}
           />
         </div>
       </div>

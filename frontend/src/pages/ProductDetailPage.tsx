@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ProductHero } from '@/components/ProductHero';
 import { ProductDetails } from '@/components/ProductDetails';
 import { ProductCard } from '@/components/ProductCard';
@@ -8,10 +9,11 @@ import { getProductBySlug, getProductReviews, formatPrice, type ProductResponse,
 import { getProducts } from '@/api/products';
 import { addCartItem, type CartItemResponse } from '@/api/cart';
 import { useCart } from '@/contexts/useCart';
+import { queryKeys } from '@/lib/queryClient';
 import type { Product } from '@/types/product';
 import type { ProductDetail, Review } from '@/types/productDetail';
 
-function mapToProductDetail(p: ProductResponse): ProductDetail {
+function mapToProductDetail(p: ProductResponse, reviews: Review[]): ProductDetail {
   const sortedImages = [...(p.images ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const firstImage = sortedImages[0]?.url ?? '';
   const firstVariant = p.variants[0];
@@ -20,6 +22,12 @@ function mapToProductDetail(p: ProductResponse): ProductDetail {
   const nameParts = p.name.split(' ');
   const titlePart1 = nameParts.slice(0, -1).join(' ') || p.name;
   const titlePart2 = nameParts[nameParts.length - 1] ?? '';
+
+  const reviewCount = reviews.length;
+  const averageRating =
+    reviewCount > 0
+      ? Math.round(reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount)
+      : 0;
 
   return {
     id: p.id,
@@ -35,8 +43,8 @@ function mapToProductDetail(p: ProductResponse): ProductDetail {
     images: sortedImages.length > 0 ? sortedImages : undefined,
     price,
     compareAtPrice,
-    rating: 0,
-    reviewCount: 0,
+    rating: averageRating,
+    reviewCount,
     sizes: p.variants.map((v) => ({
       id: v.id,
       label: v.name,
@@ -100,61 +108,51 @@ function mapApiReviewToReview(r: ProductReviewResponse): Review {
 
 export function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const [product, setProduct] = useState<ProductDetail | null>(null);
-  const [related, setRelated] = useState<Product[]>([]);
-  const [productReviews, setProductReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
   const { applyCartResponse } = useCart();
 
-  useEffect(() => {
-    if (!slug) return;
-    getProductBySlug(slug)
-      .then(({ product: p }) => setProduct(mapToProductDetail(p)))
-      .catch(() => setProduct(null))
-      .finally(() => setLoading(false));
-  }, [slug]);
+  const { data: productData, isLoading: productLoading } = useQuery({
+    queryKey: queryKeys.productBySlug(slug ?? ''),
+    queryFn: () => getProductBySlug(slug!),
+    enabled: !!slug,
+    staleTime: 2 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (!slug) return;
-    getProductReviews(slug)
-      .then(({ reviews }) => setProductReviews(reviews.map(mapApiReviewToReview)))
-      .catch(() => setProductReviews([]));
-  }, [slug]);
+  const { data: reviewsData } = useQuery({
+    queryKey: queryKeys.productReviews(slug ?? ''),
+    queryFn: () => getProductReviews(slug!),
+    enabled: !!slug,
+    staleTime: 2 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (!product) return;
-    const reviewCount = productReviews.length;
-    const averageRating =
-      reviewCount > 0
-        ? Math.round(
-            productReviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount
-          )
-        : 0;
-    setProduct((prev) =>
-      prev ? { ...prev, rating: averageRating, reviewCount } : null
-    );
-  }, [productReviews]);
+  const productReviews = useMemo(
+    () => (reviewsData?.reviews ?? []).map(mapApiReviewToReview),
+    [reviewsData]
+  );
 
-  useEffect(() => {
-    if (!product?.categorySlug) return;
-    getProducts({ category: product.categorySlug })
-      .then(({ products: list }) => {
-        const others = list
-          .filter((p) => p.slug !== slug)
-          .slice(0, 3)
-          .map((p, i) => mapToProduct(p, i === 0 ? { tapeLabel: 'HOT' } : undefined));
-        setRelated(others);
-      })
-      .catch(() => setRelated([]));
-  }, [product?.categorySlug, slug]);
+  const product = useMemo(
+    () => productData?.product ? mapToProductDetail(productData.product, productReviews) : null,
+    [productData, productReviews]
+  );
+
+  const categorySlug = productData?.product?.category?.slug;
+  const { data: relatedData } = useQuery({
+    queryKey: queryKeys.products(categorySlug),
+    queryFn: () => getProducts({ category: categorySlug! }),
+    enabled: !!categorySlug,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const related = useMemo(() => {
+    if (!relatedData?.products) return [];
+    return relatedData.products
+      .filter((p) => p.slug !== slug)
+      .slice(0, 3)
+      .map((p, i) => mapToProduct(p, i === 0 ? { tapeLabel: 'HOT' } : undefined));
+  }, [relatedData, slug]);
 
   const handleAddToCart = async (_detail: ProductDetail, sizeId: string, quantity: number) => {
-    try {
-      const { cart } = await addCartItem(sizeId, quantity);
-      applyCartResponse(cart.items as CartItemResponse[]);
-    } catch {
-      // optional: toast error
-    }
+    const { cart } = await addCartItem(sizeId, quantity);
+    applyCartResponse(cart.items as CartItemResponse[]);
   };
 
   const handleRelatedAddToCart = async (p: Product, variantId?: string): Promise<CartItemResponse[] | void> => {
@@ -169,7 +167,7 @@ export function ProductDetailPage() {
     }
   };
 
-  if (loading) {
+  if (productLoading) {
     return (
       <div className="flex justify-center py-32">
         <span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>

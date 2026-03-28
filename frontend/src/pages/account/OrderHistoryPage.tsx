@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getOrders, getOrderReview, submitOrderReview } from '@/api/orders';
 import { StarIcon } from '@/components/StarIcon';
+import { queryKeys } from '@/lib/queryClient';
 import type { AccountOrder, OrderStatus } from '@/types/account';
 import type { OrderReviewResponse } from '@/api/orders';
 
@@ -54,32 +56,31 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
 
 export function OrderHistoryPage() {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<AccountOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<FilterStatus>('all');
 
-  useEffect(() => {
-    getOrders()
-      .then(({ orders: list }) => {
-        setOrders(
-          list.map((o) => ({
-            id: o.id,
-            orderNumber: o.orderNumber,
-            status: mapStatus(o.status),
-            placedAt: formatPlacedAt(o.createdAt),
-            total: formatPrice(o.total),
-            itemThumbnails: (o.items ?? []).map((item) => ({
-              imageUrl: item.variant?.product?.images?.[0]?.url,
-              icon: 'cookie', // fallback if no image
-              quantity: item.quantity,
-            })),
-            hasReview: !!o.review?.id,
-          }))
-        );
-      })
-      .catch(() => setOrders([]))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: ordersData, isLoading: loading } = useQuery({
+    queryKey: queryKeys.orders,
+    queryFn: () => getOrders(),
+    staleTime: 60 * 1000,
+  });
+
+  const orders = useMemo<AccountOrder[]>(() =>
+    (ordersData?.orders ?? []).map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      status: mapStatus(o.status),
+      placedAt: formatPlacedAt(o.createdAt),
+      total: formatPrice(o.total),
+      itemThumbnails: (o.items ?? []).map((item) => ({
+        imageUrl: item.variant?.product?.images?.[0]?.url,
+        icon: 'cookie',
+        quantity: item.quantity,
+      })),
+      hasReview: !!o.review?.id,
+    })),
+    [ordersData]
+  );
 
   const filteredOrders =
     filter === 'all' ? orders : orders.filter((o) => o.status === filter);
@@ -89,23 +90,7 @@ export function OrderHistoryPage() {
   const [reviewMode, setReviewMode] = useState<'write' | 'view'>('write');
   const onReviewSubmitted = () => {
     setReviewOrderId(null);
-    getOrders().then(({ orders: list }) => {
-      setOrders(
-        list.map((o) => ({
-          id: o.id,
-          orderNumber: o.orderNumber,
-          status: mapStatus(o.status),
-          placedAt: formatPlacedAt(o.createdAt),
-          total: formatPrice(o.total),
-          itemThumbnails: (o.items ?? []).map((item) => ({
-            imageUrl: item.variant?.product?.images?.[0]?.url,
-            icon: 'cookie',
-            quantity: item.quantity,
-          })),
-          hasReview: !!o.review?.id,
-        }))
-      );
-    });
+    qc.invalidateQueries({ queryKey: queryKeys.orders });
   };
 
   return (

@@ -13,8 +13,11 @@ export interface OrderListItem {
   orderNumber: string;
   email: string;
   status: OrderStatus;
+  razorpayPaymentStatus: string | null;
+  deliveryType: string;
   total: number;
   currency: string;
+  shippingName: string;
   createdAt: string;
   _count: { items: number };
 }
@@ -49,6 +52,11 @@ export interface OrderDetail {
   userId: string | null;
   email: string;
   status: OrderStatus;
+  deliveryType: string;
+  campusId: string | null;
+  campus: { id: string; name: string; line1: string; city: string; state: string; pincode: string } | null;
+  user: { id: string; email: string; firstName: string | null; lastName: string | null } | null;
+  couponCode: string | null;
   subtotal: number;
   shippingAmount: number;
   discountAmount: number;
@@ -64,7 +72,7 @@ export interface OrderDetail {
   razorpayOrderId: string | null;
   razorpayPaymentId: string | null;
   razorpaySignature: string | null;
-  razorpayPaymentStatus: string | null; // Razorpay status: captured | failed | authorized | created | refunded
+  razorpayPaymentStatus: string | null;
   createdAt: string;
   updatedAt: string;
   items: OrderItemDetail[];
@@ -76,11 +84,17 @@ export interface OrderDetailResponse {
 
 export function getOrders(params?: {
   status?: OrderStatus;
+  paymentStatus?: string;
+  search?: string;
+  hideUnpaid?: boolean;
   page?: number;
   limit?: number;
 }): Promise<OrderListResponse> {
   const search = new URLSearchParams();
   if (params?.status) search.set('status', params.status);
+  if (params?.paymentStatus) search.set('paymentStatus', params.paymentStatus);
+  if (params?.search) search.set('search', params.search);
+  if (params?.hideUnpaid === false) search.set('hideUnpaid', 'false');
   if (params?.page != null) search.set('page', String(params.page));
   if (params?.limit != null) search.set('limit', String(params.limit));
   const qs = search.toString();
