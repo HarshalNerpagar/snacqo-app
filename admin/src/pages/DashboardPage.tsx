@@ -220,7 +220,7 @@ export function DashboardPage() {
                   <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `₹${v}`} />
                   <Tooltip
                     contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', fontSize: 12 }}
-                    formatter={(value: number, name?: string) => (name === 'Revenue (₹)' ? `₹${value}` : value)}
+                    formatter={(value?: number, name?: string) => (name === 'Revenue (₹)' ? `₹${value ?? 0}` : (value ?? 0))}
                   />
                   <Area yAxisId="left" type="monotone" dataKey="orders" name="Orders" stroke="#3b82f6" fill="url(#colorOrders)" strokeWidth={2} />
                   <Area yAxisId="right" type="monotone" dataKey="revenue" name="Revenue (₹)" stroke="#10b981" fill="url(#colorRevenue)" strokeWidth={2} />
@@ -282,7 +282,7 @@ export function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="productName" width={90} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', fontSize: 12 }} formatter={(value: number, name?: string) => [value, name === 'quantitySold' ? 'Units sold' : 'Orders']} />
+                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', fontSize: 12 }} formatter={(value?: number, name?: string) => [value ?? 0, name === 'quantitySold' ? 'Units sold' : 'Orders']} />
                   <Bar dataKey="quantitySold" name="quantitySold" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                   <Bar dataKey="orderCount" name="orderCount" fill="#10b981" radius={[0, 4, 4, 0]} />
                 </BarChart>

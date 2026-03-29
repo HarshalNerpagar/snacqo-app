@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, ChevronLeft, ChevronRight, Users, Mail, Phone, Calendar, ShoppingBag, IndianRupee, Cake, ShieldCheck } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight, Users, Phone, Calendar, ShoppingBag, IndianRupee, Cake, ShieldCheck } from 'lucide-react';
 import { getCustomers, getCustomerById, type CustomerListItem, type CustomerDetail } from '@/api/customers';
 import { formatPaise } from '@/api/orders';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 
 function formatDate(iso: string): string {
   try {
